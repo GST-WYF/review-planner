@@ -245,7 +245,7 @@ def delete_topic(topic_id: int):
     with sqlite3.connect(DB_NAME) as conn:
         cursor = conn.cursor()
         cursor.execute("DELETE FROM InputMaterial WHERE topic_id = ?", (topic_id,))
-        cursor.execute("DELETE FROM OutputMaterial WHERE topic_id = ?", (topic_id,))
+        cursor.execute("DELETE FROM OutputMaterial WHERE owner_type = 'topic' AND owner_id = ?", (topic_id,))
         cursor.execute("DELETE FROM TopicNode WHERE topic_id = ?", (topic_id,))
         conn.commit()
     return {"status": "deleted", "topic_id": topic_id}
