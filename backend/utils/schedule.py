@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 import sqlite3
-from time_slot import get_available_slots
-from dag import build_task_dag
+from .time_slot import get_available_slots
+from .dag import build_task_dag
 
 
 def find_output_by_topic(dag, topic_id):
@@ -388,7 +388,7 @@ def format_schedule_human_readable(schedule, db_path="review_plan.db"):
 
 if __name__ == "__main__":
     raw_schedule = generate_review_plan(
-        "2025-04-15", "2025-08-22", db_path="../review_plan.db"
+        "2025-04-15", "2025-05-22", db_path="../review_plan.db"
     )
     human_readable = format_schedule_human_readable(
         raw_schedule, db_path="../review_plan.db"

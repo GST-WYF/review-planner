@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom';
 import ReviewTreeViewer from './components/ReviewTreeViewer';
 import ReviewLogPage from './pages/ReviewLogPage';
 import ReviewSchedulePage from './pages/ReviewSchedulePage';
+import WeeklySchedulePage from './pages/WeeklySchedulePage';
 
 
 export default function App() {
@@ -19,6 +20,9 @@ export default function App() {
           <Link to="/review-schedule" className="text-purple-600 hover:underline">
             🕒 时间表
           </Link>
+          <Link to="/weekly-schedule" className="text-pink-600 hover:underline">
+            📆 周计划
+          </Link>
         </nav>
 
         {/* 页面内容区域 */}
@@ -27,6 +31,7 @@ export default function App() {
           <Route path="/review-tree" element={<ReviewTreeViewer />} />
           <Route path="/review-log" element={<ReviewLogPage />} />
           <Route path="/review-schedule" element={<ReviewSchedulePage />} />
+          <Route path="/weekly-schedule" element={<WeeklySchedulePage />} />
         </Routes>
       </div>
     </BrowserRouter>

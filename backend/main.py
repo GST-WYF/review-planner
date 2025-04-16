@@ -11,6 +11,8 @@ from pydantic import BaseModel
 from typing import List
 from datetime import datetime
 import sqlite3
+import os
+from utils.schedule import generate_review_plan, format_schedule_human_readable
 
 
 class TopicCreate(BaseModel):
@@ -321,14 +323,18 @@ def update_input_material(input_id: int, material: MaterialInput):
         cursor = conn.cursor()
 
         # 获取 topic_id（用于日志记录）
-        cursor.execute("SELECT topic_id FROM InputMaterial WHERE input_id = ?", (input_id,))
+        cursor.execute(
+            "SELECT topic_id FROM InputMaterial WHERE input_id = ?", (input_id,)
+        )
         row = cursor.fetchone()
         if not row:
             raise HTTPException(status_code=404, detail="Input material not found")
         topic_id = row[0]
 
         # 默认 is_completed 为 0（未完成）
-        is_completed = int(material.is_completed) if material.is_completed is not None else 0
+        is_completed = (
+            int(material.is_completed) if material.is_completed is not None else 0
+        )
 
         # 更新 InputMaterial 本体
         cursor.execute(
@@ -362,18 +368,17 @@ def update_input_material(input_id: int, material: MaterialInput):
         """,
             (
                 date.today().isoformat(),
-                'topic',
+                "topic",
                 topic_id,
                 input_id,
                 int((material.reviewed_hours or 0) * 60),  # 小时转分钟
-                notes
-            )
+                notes,
+            ),
         )
 
         conn.commit()
 
     return {"status": "input_material updated"}
-
 
 
 @app.delete("/api/input/{input_id}")
@@ -462,14 +467,13 @@ def update_output_material(output_id: int, material: MaterialInput):
                 owner_id,
                 output_id,
                 30,  # 输出材料默认写 30 分钟
-                notes
-            )
+                notes,
+            ),
         )
 
         conn.commit()
 
     return {"status": "output_material updated"}
-
 
 
 @app.delete("/api/output/{output_id}")
@@ -520,9 +524,9 @@ def add_material(material: dict = Body(...)):
                     material["type"],
                     material["title"],
                     material.get("accuracy"),
-                    material.get("required_hours", 1.0),     # ✅ 默认 1 小时
-                    material.get("reviewed_hours", 0.0),     # ✅ 默认未复习
-                    int(material.get("is_completed", False)) # ✅ 默认未完成
+                    material.get("required_hours", 1.0),  # ✅ 默认 1 小时
+                    material.get("reviewed_hours", 0.0),  # ✅ 默认未复习
+                    int(material.get("is_completed", False)),  # ✅ 默认未完成
                 ),
             )
         conn.commit()
@@ -556,7 +560,6 @@ def get_materials(owner_type: str, owner_id: int):
             }
             for row in rows
         ]
-
 
 
 @app.post("/api/review-task/")
@@ -734,3 +737,15 @@ def delete_special_schedule(schedule_id: int):
         cursor.execute("DELETE FROM SpecialSchedule WHERE id = ?", (schedule_id,))
         conn.commit()
     return {"status": "special schedule deleted"}
+
+
+@app.get("/api/schedule")
+def get_schedule():
+    start_date = datetime.today().strftime("%Y-%m-%d")
+    end_date = "2025-08-21"
+    db_path = os.path.abspath("review_plan.db")
+
+    raw_schedule = generate_review_plan(start_date, end_date, db_path=db_path)
+    human_readable = format_schedule_human_readable(raw_schedule, db_path=db_path)
+
+    return {"schedule": human_readable}
