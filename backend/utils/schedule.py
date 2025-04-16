@@ -78,14 +78,14 @@ def attach_next_review_dates_to_output_tasks(task_status, conn):
         next_review_date = last_review + timedelta(days=interval_days)
         task["next_review_date"] = next_review_date
 
-def generate_schedule_v3_ebbinghaus(task_pool, available_slots, dag, conn,
-                                     subject_progress_strategy=1,
-                                     max_combine_slots=3):
+def generate_schedule_v3_ebbinghaus_full_fill(task_pool, available_slots, dag, conn,
+                                               subject_progress_strategy=1,
+                                               max_combine_slots=3):
     from collections import defaultdict
+    from datetime import datetime
 
     schedule = []
 
-    # 初始化任务状态
     task_status = {
         task_id: {
             **node["task"],
@@ -95,10 +95,8 @@ def generate_schedule_v3_ebbinghaus(task_pool, available_slots, dag, conn,
         for task_id, node in dag.items()
     }
 
-    # 附加艾宾浩斯 next_review_date
     attach_next_review_dates_to_output_tasks(task_status, conn)
 
-    # 科目进度计算
     subject_total_hours = defaultdict(float)
     subject_reviewed_hours = defaultdict(float)
     subject_total_tasks = defaultdict(int)
@@ -131,11 +129,10 @@ def generate_schedule_v3_ebbinghaus(task_pool, available_slots, dag, conn,
             return 0
         next_review = task.get("next_review_date")
         if not next_review:
-            return 1  # 从未复习，默认允许安排
+            return 1
         days_gap = abs((next_review - today).days)
         return max(0, 10 - days_gap)
 
-    # 主调度循环
     last_subject = None
     subject_day_count = {}
     slot_idx = 0
@@ -144,32 +141,36 @@ def generate_schedule_v3_ebbinghaus(task_pool, available_slots, dag, conn,
     while slot_idx < total_slots:
         slot = available_slots[slot_idx]
         slot_length_hr = compute_duration_minutes(slot) / 60.0
+        remaining_hr = slot_length_hr
         date_key = slot["date"]
         today = datetime.strptime(date_key, "%Y-%m-%d").date()
 
         if date_key not in subject_day_count:
             subject_day_count[date_key] = {'input': 0, 'output': 0}
 
-        ready_tasks = [
-            t for t in task_pool
-            if not task_status[t["task_id"]]["assigned"]
-            and all(task_status[dep]["assigned"] for dep in t["deps"])
-        ]
-
-        ready_tasks.sort(key=lambda t: (
-            subject_progress(t["subject_id"] or 0),
-            -get_output_score(task_status[t["task_id"]], today),
-            abs(task_status[t["task_id"]]["remaining_hours"] - slot_length_hr),
-            t["subject_id"] == last_subject,
-            subject_day_count[date_key][t["type"]],
-        ))
-
-        remaining_hr = slot_length_hr
         slot_used = False
         attempt = 0
 
         while remaining_hr > 0.01 and attempt < 10:
             attempt += 1
+
+            ready_tasks = [
+                t for t in task_pool
+                if not task_status[t["task_id"]]["assigned"]
+                and all(task_status[dep]["assigned"] for dep in t["deps"])
+            ]
+
+            if not ready_tasks:
+                break
+
+            ready_tasks.sort(key=lambda t: (
+                subject_progress(t["subject_id"] or 0),
+                -get_output_score(task_status[t["task_id"]], today),
+                abs(task_status[t["task_id"]]["remaining_hours"] - remaining_hr),
+                t["subject_id"] == last_subject,
+                subject_day_count[date_key][t["type"]],
+            ))
+
             task_scheduled = False
 
             for task in ready_tasks:
@@ -182,7 +183,7 @@ def generate_schedule_v3_ebbinghaus(task_pool, available_slots, dag, conn,
 
                 required = tinfo["remaining_hours"]
 
-                # 尝试连续 slot 合并
+                # 拼 slot 执行长任务
                 if required > remaining_hr:
                     acc_hr = remaining_hr
                     combined_slots = [slot]
@@ -199,6 +200,8 @@ def generate_schedule_v3_ebbinghaus(task_pool, available_slots, dag, conn,
                         remaining = required
                         for s in combined_slots:
                             use_hr = min(remaining, compute_duration_minutes(s) / 60.0)
+                            if use_hr <= 0.01:
+                                continue
                             schedule.append({
                                 "date": s["date"],
                                 "start": s["start"],
@@ -210,21 +213,24 @@ def generate_schedule_v3_ebbinghaus(task_pool, available_slots, dag, conn,
                                 "topic_id": tinfo["topic_id"],
                                 "hours_assigned": use_hr
                             })
-                            # print(f"🧩 合并 slot 安排任务：{tid}, {use_hr:.2f} 小时 @ {s['date']} {s['start']}")
+                            print(f"🧩 合并 slot 安排任务：{tid}, {use_hr:.2f} 小时 @ {s['date']} {s['start']}")
                             remaining -= use_hr
                             subject_day_count[s["date"]][ttype] += 1
                         tinfo["assigned"] = True
                         tinfo["remaining_hours"] = 0
-                        slot_idx += len(combined_slots)
                         last_subject = tinfo["subject_id"]
                         slot_used = True
                         task_scheduled = True
+                        slot_idx += len(combined_slots)
                         break
+                    else:
+                        continue
 
+                # 当前 slot 拼多个小任务
+                hours = min(required, remaining_hr)
+                if hours <= 0.01:
                     continue
 
-                # 当前 slot 安排
-                hours = min(required, remaining_hr)
                 schedule.append({
                     "date": slot["date"],
                     "start": slot["start"],
@@ -236,23 +242,22 @@ def generate_schedule_v3_ebbinghaus(task_pool, available_slots, dag, conn,
                     "topic_id": tinfo["topic_id"],
                     "hours_assigned": hours
                 })
-                # print(f"📌 安排任务：{tid}, {hours:.2f} 小时 @ {slot['date']} {slot['start']}")
+                print(f"📌 安排任务：{tid}, {hours:.2f} 小时 @ {slot['date']} {slot['start']}")
                 tinfo["remaining_hours"] -= hours
                 if tinfo["remaining_hours"] <= 0.01:
                     tinfo["assigned"] = True
                 subject_day_count[date_key][ttype] += 1
                 last_subject = tinfo["subject_id"]
                 remaining_hr -= hours
-                task_scheduled = True
                 slot_used = True
+                task_scheduled = True
                 break
 
             if not task_scheduled:
                 break
 
         if not slot_used:
-            # print(f"⚠️ 无法安排任务：{slot['date']} {slot['start']} → 空 slot")
-            pass
+            print(f"⚠️ 无法安排任务：{slot['date']} {slot['start']} → 空 slot")
 
         slot_idx += 1
 
@@ -283,7 +288,7 @@ def generate_review_plan(start_date, end_date, db_path="review_plan.db"):
 
     # Step 4: 调度
     available_slots = get_available_slots(start_date, end_date, db_path)
-    schedule = generate_schedule_v3_ebbinghaus(task_pool, available_slots, dag, conn, subject_progress_strategy=1)
+    schedule = generate_schedule_v3_ebbinghaus_full_fill(task_pool, available_slots, dag, conn, subject_progress_strategy=1)
 
     conn.close()
     return schedule
