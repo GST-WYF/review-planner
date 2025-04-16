@@ -162,7 +162,7 @@ def get_topic_materials(topic_id: int):
         cursor.execute(
             """
             SELECT output_id, type, title, accuracy
-            FROM OutputMaterial WHERE topic_id = ?
+            FROM OutputMaterial WHERE owner_type = 'topic' AND owner_id = ?
         """,
             (topic_id,),
         )
@@ -312,8 +312,8 @@ def add_output_material(topic_id: int, material: MaterialInput):
         cursor = conn.cursor()
         cursor.execute(
             """
-            INSERT INTO OutputMaterial (topic_id, type, title, accuracy)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO OutputMaterial (owner_type, owner_id, type, title, accuracy)
+            VALUES ('topic', ?, ?, ?, ?)
         """,
             (topic_id, material.type, material.title, material.accuracy),
         )
@@ -343,3 +343,67 @@ def delete_output_material(output_id: int):
         conn.execute("DELETE FROM OutputMaterial WHERE output_id = ?", (output_id,))
         conn.commit()
     return {"status": "output_material deleted"}
+
+
+@app.post("/api/material")
+def add_material(material: dict = Body(...)):
+    required_keys = {"owner_type", "owner_id", "type", "title"}
+    if not required_keys.issubset(material):
+        raise HTTPException(status_code=400, detail="Missing required fields")
+
+    with sqlite3.connect(DB_NAME) as conn:
+        cursor = conn.cursor()
+        if material["owner_type"] == "topic":
+            cursor.execute(
+                """
+                INSERT INTO OutputMaterial (owner_type, owner_id, type, title, accuracy)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (
+                    material["owner_type"],
+                    material["owner_id"],
+                    material["type"],
+                    material["title"],
+                    material.get("accuracy"),
+                ),
+            )
+        else:
+            # 对 subject/exam 类型默认 accuracy = null
+            cursor.execute(
+                """
+                INSERT INTO OutputMaterial (owner_type, owner_id, type, title, accuracy)
+                VALUES (?, ?, ?, ?, NULL)
+                """,
+                (
+                    material["owner_type"],
+                    material["owner_id"],
+                    material["type"],
+                    material["title"],
+                ),
+            )
+        conn.commit()
+    return {"status": "material added"}
+
+@app.get("/api/materials")
+def get_materials(owner_type: str, owner_id: int):
+    with sqlite3.connect(DB_NAME) as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT output_id, type, title, accuracy
+            FROM OutputMaterial
+            WHERE owner_type = ? AND owner_id = ?
+            ORDER BY output_id
+            """,
+            (owner_type, owner_id),
+        )
+        rows = cursor.fetchall()
+        return [
+            {
+                "output_id": row[0],
+                "type": row[1],
+                "title": row[2],
+                "accuracy": row[3],
+            }
+            for row in rows
+        ]

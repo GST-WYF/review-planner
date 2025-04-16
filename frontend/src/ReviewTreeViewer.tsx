@@ -1,5 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
+import OutputMaterialManager from './OutputMaterialManager';
+import InputMaterialManager from './InputMaterialManager';
 
 type TopicNode = {
   topic_id: number;
@@ -131,7 +133,6 @@ export default function ReviewTreeViewer() {
   };
 
 
-
   const renderTopic = (topic: TopicNode, level = 0, subject_id: number) => {
     const margin = { marginLeft: `${level * 20}px` };
     const mat = materials[topic.topic_id];
@@ -189,158 +190,9 @@ export default function ReviewTreeViewer() {
               </div>
             )}
             {mat && (
-              <div className="text-sm mt-2 space-y-2">
-                <div className="font-semibold text-gray-600">输入材料</div>
-                {mat.input_materials.map((m: any) => {
-                  const key = `in_${m.input_id}`;
-                  return (
-                    <div key={m.input_id} className="flex flex-col gap-1 border p-2 rounded">
-                      {editingMaterial[key] ? (
-                        <>
-                          <input className="border p-1" value={materialForm[key]?.title || ''}
-                            onChange={e => setMaterialForm(prev => ({
-                              ...prev,
-                              [key]: { ...prev[key], title: e.target.value }
-                            }))} />
-                          <input className="border p-1" value={materialForm[key]?.required_hours || ''}
-                            onChange={e => setMaterialForm(prev => ({
-                              ...prev,
-                              [key]: { ...prev[key], required_hours: parseFloat(e.target.value) }
-                            }))} />
-                          <input className="border p-1" value={materialForm[key]?.reviewed_hours || ''}
-                            onChange={e => setMaterialForm(prev => ({
-                              ...prev,
-                              [key]: { ...prev[key], reviewed_hours: parseFloat(e.target.value) }
-                            }))} />
-                          <button className="text-green-600 text-xs" onClick={async () => {
-                            await fetch(`/api/input/${m.input_id}`, {
-                              method: 'PUT',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ ...m, ...materialForm[key] })
-                            });
-                            setEditingMaterial(prev => ({ ...prev, [key]: false }));
-                            setMaterials(prev => ({ ...prev, [topic.topic_id]: undefined }));
-                            loadMaterials(topic.topic_id);
-                          }}>💾 保存</button>
-                        </>
-                      ) : (
-                        <>
-                          <span>• [{m.type}] {m.title}（{m.reviewed_hours} / {m.required_hours} 小时）</span>
-                          <div className="text-xs space-x-2">
-                            <button className="text-blue-500" onClick={() => {
-                              setEditingMaterial(prev => ({ ...prev, [key]: true }));
-                              setMaterialForm(prev => ({ ...prev, [key]: m }));
-                            }}>✏ 编辑</button>
-                            <button className="text-red-500" onClick={async () => {
-                              await fetch(`/api/input/${m.input_id}`, { method: 'DELETE' });
-                              setMaterials(prev => ({ ...prev, [topic.topic_id]: undefined }));
-                              loadMaterials(topic.topic_id);
-                            }}>🗑 删除</button>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  );
-                })}
-
-                <div className="flex flex-wrap gap-1 text-xs mt-1">
-                  <select className="border p-1" id={`in_type_${topic.topic_id}`}>
-                    <option value="note">笔记</option>
-                    <option value="video">视频</option>
-                    <option value="recite">背诵材料</option>
-                  </select>
-                  <input className="border p-1" placeholder="标题" id={`in_title_${topic.topic_id}`} />
-                  <input type="number" min="0" step="0.1" className="border p-1 w-20" placeholder="需时" id={`in_req_${topic.topic_id}`} />
-                  <input type="number" min="0" step="0.1" className="border p-1 w-20" placeholder="已复习" id={`in_rev_${topic.topic_id}`} />
-
-                  <button className="bg-green-500 text-white px-2 rounded"
-                    onClick={async () => {
-                      const type = (document.getElementById(`in_type_${topic.topic_id}`) as HTMLInputElement).value;
-                      const title = (document.getElementById(`in_title_${topic.topic_id}`) as HTMLInputElement).value;
-                      const required = parseFloat((document.getElementById(`in_req_${topic.topic_id}`) as HTMLInputElement).value);
-                      const reviewed = parseFloat((document.getElementById(`in_rev_${topic.topic_id}`) as HTMLInputElement).value);
-
-                      await fetch(`/api/topic/${topic.topic_id}/input`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ type, title, required_hours: required, reviewed_hours: reviewed }),
-                      });
-                      setMaterials(prev => ({ ...prev, [topic.topic_id]: undefined }));
-                      loadMaterials(topic.topic_id);
-                    }}>添加输入</button>
-                </div>
-
-                <div className="font-semibold text-gray-600 mt-3">输出材料</div>
-                {mat.output_materials.map((m: any) => {
-                  const key = `out_${m.output_id}`;
-                  return (
-                    <div key={m.output_id} className="flex flex-col gap-1 border p-2 rounded">
-                      {editingMaterial[key] ? (
-                        <>
-                          <input className="border p-1" value={materialForm[key]?.title || ''}
-                            onChange={e => setMaterialForm(prev => ({
-                              ...prev,
-                              [key]: { ...prev[key], title: e.target.value }
-                            }))} />
-                          <input type="number" min="0" max="1" step="0.01" className="border p-1"
-                            value={materialForm[key]?.accuracy || ''}
-                            onChange={e => setMaterialForm(prev => ({
-                              ...prev,
-                              [key]: { ...prev[key], accuracy: parseFloat(e.target.value) }
-                            }))}
-                          />
-                          <button className="text-green-600 text-xs" onClick={async () => {
-                            await fetch(`/api/output/${m.output_id}`, {
-                              method: 'PUT',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ ...m, ...materialForm[key] })
-                            });
-                            setEditingMaterial(prev => ({ ...prev, [key]: false }));
-                            setMaterials(prev => ({ ...prev, [topic.topic_id]: undefined }));
-                            loadMaterials(topic.topic_id);
-                          }}>💾 保存</button>
-                        </>
-                      ) : (
-                        <>
-                          <span>• [{m.type}] {m.title}（准确率: {m.accuracy ?? '未测试'}）</span>
-                          <div className="text-xs space-x-2">
-                            <button className="text-blue-500" onClick={() => {
-                              setEditingMaterial(prev => ({ ...prev, [key]: true }));
-                              setMaterialForm(prev => ({ ...prev, [key]: m }));
-                            }}>✏ 编辑</button>
-                            <button className="text-red-500" onClick={async () => {
-                              await fetch(`/api/output/${m.output_id}`, { method: 'DELETE' });
-                              setMaterials(prev => ({ ...prev, [topic.topic_id]: undefined }));
-                              loadMaterials(topic.topic_id);
-                            }}>🗑 删除</button>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  );
-                })}
-                <div className="flex flex-wrap gap-1 text-xs mt-1">
-                  <select className="border p-1" id={`out_type_${topic.topic_id}`}>
-                    <option value="exercise_set">练习题</option>
-                    <option value="mock_exam">模拟卷</option>
-                  </select>
-                  <input className="border p-1" placeholder="标题" id={`out_title_${topic.topic_id}`} />
-                  <input type="number" min="0" max="1" step="0.01" className="border p-1 w-24" placeholder="准确率 (0~1)" id={`out_acc_${topic.topic_id}`} />
-                  <button className="bg-green-500 text-white px-2 rounded"
-                    onClick={async () => {
-                      const type = (document.getElementById(`out_type_${topic.topic_id}`) as HTMLInputElement).value;
-                      const title = (document.getElementById(`out_title_${topic.topic_id}`) as HTMLInputElement).value;
-                      const accuracy = parseFloat((document.getElementById(`out_acc_${topic.topic_id}`) as HTMLInputElement).value);
-
-                      await fetch(`/api/topic/${topic.topic_id}/output`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ type, title, accuracy }),
-                      });
-                      setMaterials(prev => ({ ...prev, [topic.topic_id]: undefined }));
-                      loadMaterials(topic.topic_id);
-                    }}>添加输出</button>
-                </div>
+              <div className="text-sm mt-2 space-y-4">
+                <InputMaterialManager topic_id={topic.topic_id} />
+                <OutputMaterialManager owner_type="topic" owner_id={topic.topic_id} />
               </div>
             )}
             {addingChild[topic.topic_id] && (
@@ -394,16 +246,16 @@ export default function ReviewTreeViewer() {
         return (
           <div key={examId} className="mb-6 border p-4 rounded shadow">
             <h2 className="text-2xl font-bold mb-3">🎓 考试：{exam_name}（ID: {examId}）</h2>
-
-            {/* {subjects.map(subject => (
-        <div key={subject.subject_id} className="mb-4">
-          <h3 className="text-xl font-semibold mb-1">📘 {subject.subject_name}</h3>
-          {subject.topics.map(topic => renderTopic(topic, 0, subject.subject_id))}
-        </div>
-      ))} */}
+            <div className="mt-2">
+              <OutputMaterialManager owner_type="exam" owner_id={examId} />
+            </div>
             {subjects.map(subject => (
               <div key={subject.subject_id} className="mb-4">
                 <h3 className="text-xl font-semibold mb-1">📘 {subject.subject_name}</h3>
+                <div className="mt-2">
+                  <OutputMaterialManager owner_type="subject" owner_id={subject.subject_id} />
+                </div>
+
                 {subject.topics.map(topic => renderTopic(topic, 0, subject.subject_id))}
 
                 <div className="mt-2 text-sm space-x-2">

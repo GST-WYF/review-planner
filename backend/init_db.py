@@ -39,21 +39,13 @@ CREATE TABLE IF NOT EXISTS InputMaterial (
 
 CREATE TABLE IF NOT EXISTS OutputMaterial (
     output_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    topic_id INTEGER NOT NULL,
+    owner_type TEXT CHECK(owner_type IN ('exam', 'subject', 'topic')) NOT NULL,
+    owner_id INTEGER NOT NULL,
     type TEXT CHECK(type IN ('exercise_set', 'mock_exam')),
     title TEXT NOT NULL,
-    accuracy REAL,
-    FOREIGN KEY (topic_id) REFERENCES TopicNode(topic_id)
+    accuracy REAL
 );
 """
-# CREATE TABLE IF NOT EXISTS OutputMaterial (
-#     output_id INTEGER PRIMARY KEY AUTOINCREMENT,
-#     owner_type TEXT CHECK(owner_type IN ('exam', 'subject', 'topic')) NOT NULL,
-#     owner_id INTEGER NOT NULL,
-#     type TEXT CHECK(type IN ('exercise_set', 'mock_exam')),
-#     title TEXT NOT NULL,
-#     accuracy REAL
-# );
 
 def initialize_database():
     with sqlite3.connect(DB_NAME) as conn:
