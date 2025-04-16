@@ -1,4 +1,5 @@
 import sqlite3
+from datetime import date
 
 DB_NAME = "review_plan.db"
 
@@ -39,11 +40,27 @@ def insert_sample_data():
             "INSERT INTO InputMaterial (topic_id, type, title, required_hours, reviewed_hours) VALUES (?, ?, ?, ?, ?)",
             (topic_id, 'note', f'{name} 笔记', 1.5, 1.0)
         )
+        input_id = cursor.lastrowid
 
-        # 输出材料（新版结构）
+        # 输出材料
         cursor.execute(
             "INSERT INTO OutputMaterial (owner_type, owner_id, type, title, accuracy) VALUES (?, ?, ?, ?, ?)",
             ('topic', topic_id, 'exercise_set', f'{name} 练习题', acc)
+        )
+        output_id = cursor.lastrowid
+
+        # 添加一个复习任务记录
+        cursor.execute(
+            "INSERT INTO ReviewTaskLog (reviewed_at, node_type, node_id, input_material_id, output_material_id, duration_minutes, notes) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (
+                date.today().isoformat(),
+                'topic',
+                topic_id,
+                input_id,
+                output_id,
+                30,
+                f'今天复习了 {name}'
+            )
         )
 
     conn.commit()

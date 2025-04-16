@@ -45,6 +45,19 @@ CREATE TABLE IF NOT EXISTS OutputMaterial (
     title TEXT NOT NULL,
     accuracy REAL
 );
+
+CREATE TABLE IF NOT EXISTS ReviewTaskLog (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    reviewed_at DATE NOT NULL,
+    node_type TEXT CHECK(node_type IN ('exam', 'subject', 'topic')) NOT NULL,
+    node_id INTEGER NOT NULL,
+    input_material_id INTEGER,
+    output_material_id INTEGER,
+    duration_minutes INTEGER NOT NULL,
+    notes TEXT,
+    FOREIGN KEY (input_material_id) REFERENCES InputMaterial(input_id),
+    FOREIGN KEY (output_material_id) REFERENCES OutputMaterial(output_id)
+);
 """
 
 def initialize_database():

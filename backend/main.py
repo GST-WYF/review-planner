@@ -5,6 +5,7 @@ from typing import List, Dict, Any, Optional
 from pydantic import BaseModel
 from fastapi import Request
 from fastapi import Body
+from datetime import date
 
 
 class TopicCreate(BaseModel):
@@ -30,10 +31,20 @@ class MaterialInput(BaseModel):
     reviewed_hours: Optional[float] = None
     accuracy: Optional[float] = None  # 仅用于输出材料
 
+
 class SubjectCreate(BaseModel):
     exam_id: int
     subject_name: str
 
+
+class ReviewTaskCreate(BaseModel):
+    reviewed_at: Optional[date] = None  # 默认今天
+    node_type: str  # 'exam' | 'subject' | 'topic'
+    node_id: int
+    input_material_id: Optional[int] = None
+    output_material_id: Optional[int] = None
+    duration_minutes: int
+    notes: Optional[str] = None
 
 
 app = FastAPI()
@@ -96,6 +107,7 @@ def fetch_tree(subject_id: int) -> List[Dict[str, Any]]:
             )
         return top_nodes
 
+
 @app.post("/api/subject/")
 def create_subject(data: SubjectCreate):
     with sqlite3.connect(DB_NAME) as conn:
@@ -108,15 +120,18 @@ def create_subject(data: SubjectCreate):
         subject_id = cursor.lastrowid
     return {"status": "created", "subject_id": subject_id}
 
+
 @app.get("/api/review-tree")
 def get_review_tree():
     with sqlite3.connect(DB_NAME) as conn:
         cursor = conn.cursor()
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT s.subject_id, s.subject_name, s.exam_id, e.exam_name
             FROM Subject s
             JOIN Exam e ON s.exam_id = e.exam_id
-        """)
+        """
+        )
         subjects = cursor.fetchall()
 
     result = []
@@ -129,12 +144,11 @@ def get_review_tree():
                 "subject_name": subject_name,
                 "exam_id": exam_id,
                 "exam_name": exam_name,
-                "topics": topics
+                "topics": topics,
             }
         )
 
     return result
-
 
 
 @app.get("/api/topic/{topic_id}/materials")
@@ -245,7 +259,10 @@ def delete_topic(topic_id: int):
     with sqlite3.connect(DB_NAME) as conn:
         cursor = conn.cursor()
         cursor.execute("DELETE FROM InputMaterial WHERE topic_id = ?", (topic_id,))
-        cursor.execute("DELETE FROM OutputMaterial WHERE owner_type = 'topic' AND owner_id = ?", (topic_id,))
+        cursor.execute(
+            "DELETE FROM OutputMaterial WHERE owner_type = 'topic' AND owner_id = ?",
+            (topic_id,),
+        )
         cursor.execute("DELETE FROM TopicNode WHERE topic_id = ?", (topic_id,))
         conn.commit()
     return {"status": "deleted", "topic_id": topic_id}
@@ -280,6 +297,15 @@ def add_input_material(topic_id: int, material: MaterialInput):
 def update_input_material(input_id: int, material: MaterialInput):
     with sqlite3.connect(DB_NAME) as conn:
         cursor = conn.cursor()
+
+        # 获取 topic_id（用于日志记录）
+        cursor.execute("SELECT topic_id FROM InputMaterial WHERE input_id = ?", (input_id,))
+        row = cursor.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Input material not found")
+        topic_id = row[0]
+
+        # 更新 InputMaterial 本体
         cursor.execute(
             """
             UPDATE InputMaterial
@@ -294,8 +320,29 @@ def update_input_material(input_id: int, material: MaterialInput):
                 input_id,
             ),
         )
+
+        # 自动写入 ReviewTaskLog
+        cursor.execute(
+            """
+            INSERT INTO ReviewTaskLog (
+                reviewed_at, node_type, node_id,
+                input_material_id, duration_minutes, notes
+            ) VALUES (?, ?, ?, ?, ?, ?)
+        """,
+            (
+                date.today().isoformat(),
+                'topic',
+                topic_id,
+                input_id,
+                int((material.reviewed_hours or 0) * 60),  # 小时转分钟
+                '自动记录：更新输入材料'
+            )
+        )
+
         conn.commit()
+
     return {"status": "input_material updated"}
+
 
 
 @app.delete("/api/input/{input_id}")
@@ -325,6 +372,18 @@ def add_output_material(topic_id: int, material: MaterialInput):
 def update_output_material(output_id: int, material: MaterialInput):
     with sqlite3.connect(DB_NAME) as conn:
         cursor = conn.cursor()
+
+        # 获取 owner_type + owner_id（用于日志记录）
+        cursor.execute(
+            "SELECT owner_type, owner_id FROM OutputMaterial WHERE output_id = ?",
+            (output_id,),
+        )
+        row = cursor.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Output material not found")
+        owner_type, owner_id = row
+
+        # 更新 OutputMaterial 本体
         cursor.execute(
             """
             UPDATE OutputMaterial
@@ -333,8 +392,29 @@ def update_output_material(output_id: int, material: MaterialInput):
         """,
             (material.type, material.title, material.accuracy, output_id),
         )
+
+        # 自动写入 ReviewTaskLog
+        cursor.execute(
+            """
+            INSERT INTO ReviewTaskLog (
+                reviewed_at, node_type, node_id,
+                output_material_id, duration_minutes, notes
+            ) VALUES (?, ?, ?, ?, ?, ?)
+        """,
+            (
+                date.today().isoformat(),
+                owner_type,
+                owner_id,
+                output_id,
+                30,  # ✅ 默认输出材料用时可设定为 30 分钟或 0
+                '自动记录：更新输出材料'
+            )
+        )
+
         conn.commit()
+
     return {"status": "output_material updated"}
+
 
 
 @app.delete("/api/output/{output_id}")
@@ -384,6 +464,7 @@ def add_material(material: dict = Body(...)):
         conn.commit()
     return {"status": "material added"}
 
+
 @app.get("/api/materials")
 def get_materials(owner_type: str, owner_id: int):
     with sqlite3.connect(DB_NAME) as conn:
@@ -407,3 +488,101 @@ def get_materials(owner_type: str, owner_id: int):
             }
             for row in rows
         ]
+
+
+@app.post("/api/review-task/")
+def create_review_task(task: ReviewTaskCreate):
+    if task.node_type not in ("exam", "subject", "topic"):
+        raise HTTPException(status_code=400, detail="Invalid node_type")
+
+    reviewed_at = task.reviewed_at or date.today().isoformat()
+
+    try:
+        with sqlite3.connect(DB_NAME) as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                INSERT INTO ReviewTaskLog (
+                    reviewed_at,
+                    node_type,
+                    node_id,
+                    input_material_id,
+                    output_material_id,
+                    duration_minutes,
+                    notes
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+                (
+                    reviewed_at,
+                    task.node_type,
+                    task.node_id,
+                    task.input_material_id,
+                    task.output_material_id,
+                    task.duration_minutes,
+                    task.notes,
+                ),
+            )
+            conn.commit()
+            return {"success": True, "id": cursor.lastrowid}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/review-tasks")
+def get_review_tasks():
+    with sqlite3.connect(DB_NAME) as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT id, reviewed_at, node_type, node_id,
+                   input_material_id, output_material_id,
+                   duration_minutes, notes
+            FROM ReviewTaskLog
+            ORDER BY reviewed_at DESC, id DESC
+            """
+        )
+        rows = cursor.fetchall()
+
+        result = []
+        for row in rows:
+            task = {
+                "id": row[0],
+                "reviewed_at": row[1],
+                "node_type": row[2],
+                "node_id": row[3],
+                "input_material_id": row[4],
+                "output_material_id": row[5],
+                "duration_minutes": row[6],
+                "notes": row[7],
+                "node_name": None,
+                "input_material_title": None,
+                "output_material_title": None,
+            }
+
+            # 查 node 名称
+            if task["node_type"] == "exam":
+                cursor.execute("SELECT exam_name FROM Exam WHERE exam_id = ?", (task["node_id"],))
+                res = cursor.fetchone()
+                task["node_name"] = res[0] if res else None
+            elif task["node_type"] == "subject":
+                cursor.execute("SELECT subject_name FROM Subject WHERE subject_id = ?", (task["node_id"],))
+                res = cursor.fetchone()
+                task["node_name"] = res[0] if res else None
+            elif task["node_type"] == "topic":
+                cursor.execute("SELECT name FROM TopicNode WHERE topic_id = ?", (task["node_id"],))
+                res = cursor.fetchone()
+                task["node_name"] = res[0] if res else None
+
+            # 查材料标题
+            if task["input_material_id"]:
+                cursor.execute("SELECT title FROM InputMaterial WHERE input_id = ?", (task["input_material_id"],))
+                res = cursor.fetchone()
+                task["input_material_title"] = res[0] if res else None
+
+            if task["output_material_id"]:
+                cursor.execute("SELECT title FROM OutputMaterial WHERE output_id = ?", (task["output_material_id"],))
+                res = cursor.fetchone()
+                task["output_material_title"] = res[0] if res else None
+
+            result.append(task)
+
+        return result
