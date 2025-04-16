@@ -12,6 +12,7 @@ from typing import List
 from datetime import datetime
 import sqlite3
 
+
 class TopicCreate(BaseModel):
     subject_id: int
     parent_id: Optional[int] = None
@@ -34,6 +35,7 @@ class MaterialInput(BaseModel):
     required_hours: Optional[float] = None
     reviewed_hours: Optional[float] = None
     accuracy: Optional[float] = None  # 仅用于输出材料
+    is_completed: Optional[bool] = None  # ✅ 新增字段
 
 
 class SubjectCreate(BaseModel):
@@ -50,13 +52,15 @@ class ReviewTaskCreate(BaseModel):
     duration_minutes: int
     notes: Optional[str] = None
 
+
 class TimeBlock(BaseModel):
-    day_of_week: int         # 0~6
-    start_time: str          # HH:MM
+    day_of_week: int  # 0~6
+    start_time: str  # HH:MM
     end_time: str
 
+
 class SpecialTimeBlock(BaseModel):
-    date: str                # YYYY-MM-DD
+    date: str  # YYYY-MM-DD
     start_time: str
     end_time: str
 
@@ -171,7 +175,7 @@ def get_topic_materials(topic_id: int):
         cursor = conn.cursor()
         cursor.execute(
             """
-            SELECT input_id, type, title, required_hours, reviewed_hours
+            SELECT input_id, type, title, required_hours, reviewed_hours, is_completed
             FROM InputMaterial WHERE topic_id = ?
         """,
             (topic_id,),
@@ -183,13 +187,14 @@ def get_topic_materials(topic_id: int):
                 "title": row[2],
                 "required_hours": row[3],
                 "reviewed_hours": row[4],
+                "is_completed": bool(row[5]),
             }
             for row in cursor.fetchall()
         ]
 
         cursor.execute(
             """
-            SELECT output_id, type, title, accuracy
+            SELECT output_id, type, title, accuracy, required_hours, reviewed_hours, is_completed
             FROM OutputMaterial WHERE owner_type = 'topic' AND owner_id = ?
         """,
             (topic_id,),
@@ -200,6 +205,9 @@ def get_topic_materials(topic_id: int):
                 "type": row[1],
                 "title": row[2],
                 "accuracy": row[3],
+                "required_hours": row[4],
+                "reviewed_hours": row[5],
+                "is_completed": bool(row[6]),
             }
             for row in cursor.fetchall()
         ]
@@ -292,8 +300,8 @@ def add_input_material(topic_id: int, material: MaterialInput):
         cursor = conn.cursor()
         cursor.execute(
             """
-            INSERT INTO InputMaterial (topic_id, type, title, required_hours, reviewed_hours)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO InputMaterial (topic_id, type, title, required_hours, reviewed_hours, is_completed)
+            VALUES (?, ?, ?, ?, ?, 0)
         """,
             (
                 topic_id,
@@ -319,11 +327,14 @@ def update_input_material(input_id: int, material: MaterialInput):
             raise HTTPException(status_code=404, detail="Input material not found")
         topic_id = row[0]
 
+        # 默认 is_completed 为 0（未完成）
+        is_completed = int(material.is_completed) if material.is_completed is not None else 0
+
         # 更新 InputMaterial 本体
         cursor.execute(
             """
             UPDATE InputMaterial
-            SET type = ?, title = ?, required_hours = ?, reviewed_hours = ?
+            SET type = ?, title = ?, required_hours = ?, reviewed_hours = ?, is_completed = ?
             WHERE input_id = ?
         """,
             (
@@ -331,9 +342,15 @@ def update_input_material(input_id: int, material: MaterialInput):
                 material.title,
                 material.required_hours,
                 material.reviewed_hours,
+                is_completed,
                 input_id,
             ),
         )
+
+        # 备注信息
+        notes = "自动记录：更新输入材料"
+        if is_completed:
+            notes += " ✅ 材料已标记完成"
 
         # 自动写入 ReviewTaskLog
         cursor.execute(
@@ -349,7 +366,7 @@ def update_input_material(input_id: int, material: MaterialInput):
                 topic_id,
                 input_id,
                 int((material.reviewed_hours or 0) * 60),  # 小时转分钟
-                '自动记录：更新输入材料'
+                notes
             )
         )
 
@@ -373,10 +390,19 @@ def add_output_material(topic_id: int, material: MaterialInput):
         cursor = conn.cursor()
         cursor.execute(
             """
-            INSERT INTO OutputMaterial (owner_type, owner_id, type, title, accuracy)
-            VALUES ('topic', ?, ?, ?, ?)
+            INSERT INTO OutputMaterial (
+                owner_type, owner_id, type, title, accuracy,
+                required_hours, reviewed_hours, is_completed
+            ) VALUES ('topic', ?, ?, ?, ?, ?, ?, 0)
         """,
-            (topic_id, material.type, material.title, material.accuracy),
+            (
+                topic_id,
+                material.type,
+                material.title,
+                material.accuracy,
+                material.required_hours,
+                material.reviewed_hours,
+            ),
         )
         conn.commit()
     return {"status": "output_material added"}
@@ -397,15 +423,30 @@ def update_output_material(output_id: int, material: MaterialInput):
             raise HTTPException(status_code=404, detail="Output material not found")
         owner_type, owner_id = row
 
+        # 默认 is_completed 为 0（未完成）
+        is_completed = 1 if material.is_completed is not None else 0
+        print("📦 更新输出材料 is_completed:", is_completed)
+
         # 更新 OutputMaterial 本体
         cursor.execute(
             """
             UPDATE OutputMaterial
-            SET type = ?, title = ?, accuracy = ?
+            SET type = ?, title = ?, accuracy = ?, is_completed = ?
             WHERE output_id = ?
         """,
-            (material.type, material.title, material.accuracy, output_id),
+            (
+                material.type,
+                material.title,
+                material.accuracy,
+                is_completed,
+                output_id,
+            ),
         )
+
+        # 备注信息
+        notes = "自动记录：更新输出材料"
+        if is_completed:
+            notes += " ✅ 输出材料完成"
 
         # 自动写入 ReviewTaskLog
         cursor.execute(
@@ -420,8 +461,8 @@ def update_output_material(output_id: int, material: MaterialInput):
                 owner_type,
                 owner_id,
                 output_id,
-                30,  # ✅ 默认输出材料用时可设定为 30 分钟或 0
-                '自动记录：更新输出材料'
+                30,  # 输出材料默认写 30 分钟
+                notes
             )
         )
 
@@ -450,8 +491,11 @@ def add_material(material: dict = Body(...)):
         if material["owner_type"] == "topic":
             cursor.execute(
                 """
-                INSERT INTO OutputMaterial (owner_type, owner_id, type, title, accuracy)
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO OutputMaterial (
+                    owner_type, owner_id, type, title, accuracy,
+                    required_hours, reviewed_hours, is_completed
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, 0)
                 """,
                 (
                     material["owner_type"],
@@ -465,14 +509,20 @@ def add_material(material: dict = Body(...)):
             # 对 subject/exam 类型默认 accuracy = null
             cursor.execute(
                 """
-                INSERT INTO OutputMaterial (owner_type, owner_id, type, title, accuracy)
-                VALUES (?, ?, ?, ?, NULL)
+                INSERT INTO OutputMaterial (
+                    owner_type, owner_id, type, title, accuracy,
+                    required_hours, reviewed_hours, is_completed
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     material["owner_type"],
                     material["owner_id"],
                     material["type"],
                     material["title"],
+                    material.get("accuracy"),
+                    material.get("required_hours", 1.0),     # ✅ 默认 1 小时
+                    material.get("reviewed_hours", 0.0),     # ✅ 默认未复习
+                    int(material.get("is_completed", False)) # ✅ 默认未完成
                 ),
             )
         conn.commit()
@@ -485,7 +535,8 @@ def get_materials(owner_type: str, owner_id: int):
         cursor = conn.cursor()
         cursor.execute(
             """
-            SELECT output_id, type, title, accuracy
+            SELECT output_id, type, title, accuracy,
+                   required_hours, reviewed_hours, is_completed
             FROM OutputMaterial
             WHERE owner_type = ? AND owner_id = ?
             ORDER BY output_id
@@ -499,9 +550,13 @@ def get_materials(owner_type: str, owner_id: int):
                 "type": row[1],
                 "title": row[2],
                 "accuracy": row[3],
+                "required_hours": row[4],
+                "reviewed_hours": row[5],
+                "is_completed": bool(row[6]),
             }
             for row in rows
         ]
+
 
 
 @app.post("/api/review-task/")
@@ -541,6 +596,7 @@ def create_review_task(task: ReviewTaskCreate):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.get("/api/review-tasks")
 def get_review_tasks():
     with sqlite3.connect(DB_NAME) as conn:
@@ -574,26 +630,39 @@ def get_review_tasks():
 
             # 查 node 名称
             if task["node_type"] == "exam":
-                cursor.execute("SELECT exam_name FROM Exam WHERE exam_id = ?", (task["node_id"],))
+                cursor.execute(
+                    "SELECT exam_name FROM Exam WHERE exam_id = ?", (task["node_id"],)
+                )
                 res = cursor.fetchone()
                 task["node_name"] = res[0] if res else None
             elif task["node_type"] == "subject":
-                cursor.execute("SELECT subject_name FROM Subject WHERE subject_id = ?", (task["node_id"],))
+                cursor.execute(
+                    "SELECT subject_name FROM Subject WHERE subject_id = ?",
+                    (task["node_id"],),
+                )
                 res = cursor.fetchone()
                 task["node_name"] = res[0] if res else None
             elif task["node_type"] == "topic":
-                cursor.execute("SELECT name FROM TopicNode WHERE topic_id = ?", (task["node_id"],))
+                cursor.execute(
+                    "SELECT name FROM TopicNode WHERE topic_id = ?", (task["node_id"],)
+                )
                 res = cursor.fetchone()
                 task["node_name"] = res[0] if res else None
 
             # 查材料标题
             if task["input_material_id"]:
-                cursor.execute("SELECT title FROM InputMaterial WHERE input_id = ?", (task["input_material_id"],))
+                cursor.execute(
+                    "SELECT title FROM InputMaterial WHERE input_id = ?",
+                    (task["input_material_id"],),
+                )
                 res = cursor.fetchone()
                 task["input_material_title"] = res[0] if res else None
 
             if task["output_material_id"]:
-                cursor.execute("SELECT title FROM OutputMaterial WHERE output_id = ?", (task["output_material_id"],))
+                cursor.execute(
+                    "SELECT title FROM OutputMaterial WHERE output_id = ?",
+                    (task["output_material_id"],),
+                )
                 res = cursor.fetchone()
                 task["output_material_title"] = res[0] if res else None
 
@@ -601,16 +670,20 @@ def get_review_tasks():
 
         return result
 
+
 @app.get("/api/schedule/default")
 def get_default_schedule():
     with sqlite3.connect(DB_NAME) as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT id, day_of_week, start_time, end_time FROM DefaultSchedule")
+        cursor.execute(
+            "SELECT id, day_of_week, start_time, end_time FROM DefaultSchedule"
+        )
         rows = cursor.fetchall()
     return [
         {"id": row[0], "day_of_week": row[1], "start_time": row[2], "end_time": row[3]}
         for row in rows
     ]
+
 
 @app.post("/api/schedule/default")
 def set_default_schedule(blocks: List[TimeBlock]):
@@ -620,10 +693,11 @@ def set_default_schedule(blocks: List[TimeBlock]):
         for block in blocks:
             cursor.execute(
                 "INSERT INTO DefaultSchedule (day_of_week, start_time, end_time) VALUES (?, ?, ?)",
-                (block.day_of_week, block.start_time, block.end_time)
+                (block.day_of_week, block.start_time, block.end_time),
             )
         conn.commit()
     return {"status": "default schedule updated"}
+
 
 @app.get("/api/schedule/special")
 def get_special_schedule():
@@ -632,7 +706,7 @@ def get_special_schedule():
         cursor = conn.cursor()
         cursor.execute(
             "SELECT id, date, start_time, end_time FROM SpecialSchedule WHERE date >= ? ORDER BY date ASC",
-            (today,)
+            (today,),
         )
         rows = cursor.fetchall()
     return [
@@ -640,16 +714,18 @@ def get_special_schedule():
         for row in rows
     ]
 
+
 @app.post("/api/schedule/special")
 def add_special_schedule(item: SpecialTimeBlock):
     with sqlite3.connect(DB_NAME) as conn:
         cursor = conn.cursor()
         cursor.execute(
             "INSERT INTO SpecialSchedule (date, start_time, end_time) VALUES (?, ?, ?)",
-            (item.date, item.start_time, item.end_time)
+            (item.date, item.start_time, item.end_time),
         )
         conn.commit()
     return {"status": "special schedule added"}
+
 
 @app.delete("/api/schedule/special/{schedule_id}")
 def delete_special_schedule(schedule_id: int):

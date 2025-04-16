@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS InputMaterial (
     title TEXT NOT NULL,
     required_hours REAL NOT NULL,
     reviewed_hours REAL NOT NULL,
+    is_completed BOOLEAN NOT NULL DEFAULT 0,
     FOREIGN KEY (topic_id) REFERENCES TopicNode(topic_id)
 );
 
@@ -43,7 +44,10 @@ CREATE TABLE IF NOT EXISTS OutputMaterial (
     owner_id INTEGER NOT NULL,
     type TEXT CHECK(type IN ('exercise_set', 'mock_exam')),
     title TEXT NOT NULL,
-    accuracy REAL
+    accuracy REAL,
+    required_hours REAL NOT NULL,
+    reviewed_hours REAL NOT NULL,
+    is_completed BOOLEAN NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS ReviewTaskLog (

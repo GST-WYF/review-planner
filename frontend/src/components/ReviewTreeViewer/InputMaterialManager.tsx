@@ -6,6 +6,7 @@ type InputMaterial = {
   title: string;
   required_hours: number;
   reviewed_hours: number;
+  is_completed: boolean;
 };
 
 type Props = {
@@ -29,15 +30,25 @@ export default function InputMaterialManager({ topic_id }: Props) {
   };
 
   const addMaterial = async () => {
-    if (!newMaterial.type || !newMaterial.title || newMaterial.required_hours == null || newMaterial.reviewed_hours == null) {
+    if (
+      !newMaterial.type ||
+      !newMaterial.title ||
+      newMaterial.required_hours == null ||
+      newMaterial.reviewed_hours == null
+    ) {
       alert("请填写所有字段");
       return;
     }
+
     await fetch(`/api/topic/${topic_id}/input`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newMaterial)
+      body: JSON.stringify({
+        ...newMaterial,
+        is_completed: newMaterial.is_completed ?? false
+      })
     });
+
     setNewMaterial({});
     load();
   };
@@ -63,6 +74,14 @@ export default function InputMaterialManager({ topic_id }: Props) {
                 onChange={e =>
                   setForm(prev => ({ ...prev, [m.input_id]: { ...prev[m.input_id], reviewed_hours: parseFloat(e.target.value) } }))
                 } />
+              <label className="flex items-center gap-1 text-xs">
+                <input type="checkbox"
+                  checked={form[m.input_id]?.is_completed || false}
+                  onChange={e =>
+                    setForm(prev => ({ ...prev, [m.input_id]: { ...prev[m.input_id], is_completed: e.target.checked } }))
+                  } />
+                已完成
+              </label>
               <button className="text-green-600" onClick={async () => {
                 await fetch(`/api/input/${m.input_id}`, {
                   method: 'PUT',
@@ -75,7 +94,10 @@ export default function InputMaterialManager({ topic_id }: Props) {
             </div>
           ) : (
             <div className="flex justify-between items-center">
-              <div>• [{m.type}] {m.title}（{m.reviewed_hours} / {m.required_hours} 小时）</div>
+              <div>
+                • [{m.type}] {m.title}（{m.reviewed_hours} / {m.required_hours} 小时）
+                {m.is_completed && <span className="text-green-600 ml-2">✅ 已完成</span>}
+              </div>
               <div className="space-x-2">
                 <button className="text-blue-500" onClick={() => {
                   setEditing(prev => ({ ...prev, [m.input_id]: true }));
@@ -109,6 +131,12 @@ export default function InputMaterialManager({ topic_id }: Props) {
         <input type="number" className="border p-1 w-20" placeholder="已复"
           value={newMaterial.reviewed_hours ?? ''}
           onChange={e => setNewMaterial(prev => ({ ...prev, reviewed_hours: parseFloat(e.target.value) }))} />
+        <label className="flex items-center gap-1 text-xs">
+          <input type="checkbox"
+            checked={newMaterial.is_completed || false}
+            onChange={e => setNewMaterial(prev => ({ ...prev, is_completed: e.target.checked }))} />
+          已完成
+        </label>
         <button className="bg-green-500 text-white px-2 py-0.5 rounded" onClick={addMaterial}>➕</button>
       </div>
     </div>
