@@ -210,7 +210,7 @@ def generate_schedule_v3_ebbinghaus(task_pool, available_slots, dag, conn,
                                 "topic_id": tinfo["topic_id"],
                                 "hours_assigned": use_hr
                             })
-                            print(f"🧩 合并 slot 安排任务：{tid}, {use_hr:.2f} 小时 @ {s['date']} {s['start']}")
+                            # print(f"🧩 合并 slot 安排任务：{tid}, {use_hr:.2f} 小时 @ {s['date']} {s['start']}")
                             remaining -= use_hr
                             subject_day_count[s["date"]][ttype] += 1
                         tinfo["assigned"] = True
@@ -236,7 +236,7 @@ def generate_schedule_v3_ebbinghaus(task_pool, available_slots, dag, conn,
                     "topic_id": tinfo["topic_id"],
                     "hours_assigned": hours
                 })
-                print(f"📌 安排任务：{tid}, {hours:.2f} 小时 @ {slot['date']} {slot['start']}")
+                # print(f"📌 安排任务：{tid}, {hours:.2f} 小时 @ {slot['date']} {slot['start']}")
                 tinfo["remaining_hours"] -= hours
                 if tinfo["remaining_hours"] <= 0.01:
                     tinfo["assigned"] = True
@@ -251,7 +251,8 @@ def generate_schedule_v3_ebbinghaus(task_pool, available_slots, dag, conn,
                 break
 
         if not slot_used:
-            print(f"⚠️ 无法安排任务：{slot['date']} {slot['start']} → 空 slot")
+            # print(f"⚠️ 无法安排任务：{slot['date']} {slot['start']} → 空 slot")
+            pass
 
         slot_idx += 1
 
@@ -388,10 +389,6 @@ def format_schedule_human_readable(schedule, db_path="review_plan.db"):
 if __name__ == "__main__":
     raw_schedule = generate_review_plan(
         "2025-04-15", "2025-08-22", db_path="../review_plan.db"
-    )
-    print(
-        "📊 Output 被调度数量：",
-        sum(1 for x in raw_schedule if x["task_type"] == "output"),
     )
     human_readable = format_schedule_human_readable(
         raw_schedule, db_path="../review_plan.db"

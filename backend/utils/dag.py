@@ -125,15 +125,15 @@ def build_task_dag(conn):
             for subject_output in subject_outputs:
                 dag[exam_output]["deps"].add(subject_output)
 
-    print("✅ DAG 构建完成。统计任务数量：")
-    print("所有任务数：", len(dag))
-    print(
-        "output 任务数：", sum(1 for t in dag.values() if t["task"]["type"] == "output")
-    )
-    print(
-        "ready 状态 output 任务数：",
-        sum(1 for t in dag.values() if t["task"]["type"] == "output" and not t["deps"]),
-    )
+    # print("✅ DAG 构建完成。统计任务数量：")
+    # print("所有任务数：", len(dag))
+    # print(
+    #     "output 任务数：", sum(1 for t in dag.values() if t["task"]["type"] == "output")
+    # )
+    # print(
+    #     "ready 状态 output 任务数：",
+    #     sum(1 for t in dag.values() if t["task"]["type"] == "output" and not t["deps"]),
+    # )
 
     return dag
 
