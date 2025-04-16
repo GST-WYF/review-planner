@@ -94,7 +94,7 @@ export default function SubjectPanel({
                 setAddingRoot(prev => ({ ...prev, [subject.subject_id]: true }))
               }
             >
-              ➕ 添加知识点
+              ➕ 添加章节
             </button>
           )}
 

@@ -40,7 +40,7 @@ export default function AddTopicForm({ subject_id, parent_id, onAdded }: Props) 
         />
       </div>
       <div>
-        <label className="text-gray-600">是否叶子</label>
+        <label className="text-gray-600">是否为知识点🍃</label>
         <select
           className="border p-1 w-full"
           value={isLeaf}

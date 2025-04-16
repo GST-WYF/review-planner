@@ -35,14 +35,14 @@ export default function TopicEditor({ topic, onClose, onSaved }: Props) {
           onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))}
         />
       </div>
-      <div>
+      {/* <div>
         <label className="block text-gray-600">准确率</label>
         <input
           className="border p-1 w-full"
           value={form.accuracy}
           onChange={e => setForm(prev => ({ ...prev, accuracy: e.target.value }))}
         />
-      </div>
+      </div> */}
       {topic.is_leaf && (
         <div>
           <label className="block text-gray-600">重要性</label>

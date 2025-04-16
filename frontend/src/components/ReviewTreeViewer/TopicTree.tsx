@@ -63,12 +63,12 @@ export default function TopicTree({
           ) : (
             <>
               <div className="font-semibold">{topic.name}</div>
-              <div className="text-sm text-gray-700">
+              {/* <div className="text-sm text-gray-700">
                 {topic.accuracy !== null && <>准确率: {topic.accuracy} </>}
                 {topic.is_leaf && topic.importance !== null && (
                   <>| 重要性: {topic.importance}</>
                 )}
-              </div>
+              </div> */}
               <div className="text-sm space-x-2">
                 <button
                   className="text-blue-600"
@@ -92,7 +92,7 @@ export default function TopicTree({
                   onClick={() => setAddingChild(true)}
                   className="text-green-600"
                 >
-                  ➕ 子节点
+                  ➕ 子章节
                 </button>
               </div>
             </>
