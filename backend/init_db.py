@@ -58,6 +58,20 @@ CREATE TABLE IF NOT EXISTS ReviewTaskLog (
     FOREIGN KEY (input_material_id) REFERENCES InputMaterial(input_id),
     FOREIGN KEY (output_material_id) REFERENCES OutputMaterial(output_id)
 );
+
+CREATE TABLE IF NOT EXISTS DefaultSchedule (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    day_of_week INTEGER NOT NULL, -- 0: 周一, ..., 6: 周日
+    start_time TEXT NOT NULL,     -- 'HH:MM'
+    end_time TEXT NOT NULL        -- 'HH:MM'
+);
+
+CREATE TABLE IF NOT EXISTS SpecialSchedule (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    date TEXT NOT NULL,           -- 'YYYY-MM-DD'
+    start_time TEXT NOT NULL,     -- 'HH:MM'
+    end_time TEXT NOT NULL        -- 'HH:MM'
+);
 """
 
 def initialize_database():

@@ -6,7 +6,11 @@ from pydantic import BaseModel
 from fastapi import Request
 from fastapi import Body
 from datetime import date
-
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from typing import List
+from datetime import datetime
+import sqlite3
 
 class TopicCreate(BaseModel):
     subject_id: int
@@ -45,6 +49,16 @@ class ReviewTaskCreate(BaseModel):
     output_material_id: Optional[int] = None
     duration_minutes: int
     notes: Optional[str] = None
+
+class TimeBlock(BaseModel):
+    day_of_week: int         # 0~6
+    start_time: str          # HH:MM
+    end_time: str
+
+class SpecialTimeBlock(BaseModel):
+    date: str                # YYYY-MM-DD
+    start_time: str
+    end_time: str
 
 
 app = FastAPI()
@@ -586,3 +600,61 @@ def get_review_tasks():
             result.append(task)
 
         return result
+
+@app.get("/api/schedule/default")
+def get_default_schedule():
+    with sqlite3.connect(DB_NAME) as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, day_of_week, start_time, end_time FROM DefaultSchedule")
+        rows = cursor.fetchall()
+    return [
+        {"id": row[0], "day_of_week": row[1], "start_time": row[2], "end_time": row[3]}
+        for row in rows
+    ]
+
+@app.post("/api/schedule/default")
+def set_default_schedule(blocks: List[TimeBlock]):
+    with sqlite3.connect(DB_NAME) as conn:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM DefaultSchedule")
+        for block in blocks:
+            cursor.execute(
+                "INSERT INTO DefaultSchedule (day_of_week, start_time, end_time) VALUES (?, ?, ?)",
+                (block.day_of_week, block.start_time, block.end_time)
+            )
+        conn.commit()
+    return {"status": "default schedule updated"}
+
+@app.get("/api/schedule/special")
+def get_special_schedule():
+    today = datetime.today().date().isoformat()
+    with sqlite3.connect(DB_NAME) as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT id, date, start_time, end_time FROM SpecialSchedule WHERE date >= ? ORDER BY date ASC",
+            (today,)
+        )
+        rows = cursor.fetchall()
+    return [
+        {"id": row[0], "date": row[1], "start_time": row[2], "end_time": row[3]}
+        for row in rows
+    ]
+
+@app.post("/api/schedule/special")
+def add_special_schedule(item: SpecialTimeBlock):
+    with sqlite3.connect(DB_NAME) as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO SpecialSchedule (date, start_time, end_time) VALUES (?, ?, ?)",
+            (item.date, item.start_time, item.end_time)
+        )
+        conn.commit()
+    return {"status": "special schedule added"}
+
+@app.delete("/api/schedule/special/{schedule_id}")
+def delete_special_schedule(schedule_id: int):
+    with sqlite3.connect(DB_NAME) as conn:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM SpecialSchedule WHERE id = ?", (schedule_id,))
+        conn.commit()
+    return {"status": "special schedule deleted"}
