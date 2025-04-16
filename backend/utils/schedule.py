@@ -45,40 +45,73 @@ def extract_task_pool(dag):
             )
     return task_pool
 
+def attach_next_review_dates_to_output_tasks(task_status, conn):
+    cursor = conn.cursor()
 
-def generate_schedule_v2_safe_with_progress(
-    task_pool, available_slots, dag, subject_progress_strategy=1, max_combine_slots=3
-):
+    # 艾宾浩斯推荐间隔（第 N 次复习后）
+    intervals = [1, 2, 4, 7, 15]
+
+    for task_id, task in task_status.items():
+        if task["type"] != "output":
+            continue
+
+        output_id = task["material_id"]
+        cursor.execute("""
+            SELECT reviewed_at FROM ReviewTaskLog
+            WHERE output_material_id = ?
+            ORDER BY reviewed_at ASC
+        """, (output_id,))
+        review_dates = [datetime.strptime(row[0], "%Y-%m-%d").date() for row in cursor.fetchall()]
+
+        if not review_dates:
+            task["next_review_date"] = None  # 从未复习过，可随时安排
+            continue
+
+        num_reviews = len(review_dates)
+        last_review = review_dates[-1]
+
+        if num_reviews >= len(intervals):
+            interval_days = intervals[-1]
+        else:
+            interval_days = intervals[num_reviews]
+
+        next_review_date = last_review + timedelta(days=interval_days)
+        task["next_review_date"] = next_review_date
+
+def generate_schedule_v3_ebbinghaus(task_pool, available_slots, dag, conn,
+                                     subject_progress_strategy=1,
+                                     max_combine_slots=3):
     from collections import defaultdict
 
     schedule = []
+
+    # 初始化任务状态
     task_status = {
         task_id: {
             **node["task"],
             "assigned": node["task"]["is_completed"],
-            "remaining_hours": max(
-                0, node["task"]["required_hours"] - node["task"]["reviewed_hours"]
-            ),
+            "remaining_hours": max(0, node["task"]["required_hours"] - node["task"]["reviewed_hours"])
         }
         for task_id, node in dag.items()
     }
 
-    # 1. 预统计每个 subject 的进度
+    # 附加艾宾浩斯 next_review_date
+    attach_next_review_dates_to_output_tasks(task_status, conn)
+
+    # 科目进度计算
     subject_total_hours = defaultdict(float)
     subject_reviewed_hours = defaultdict(float)
     subject_total_tasks = defaultdict(int)
     subject_completed_tasks = defaultdict(int)
 
-    # 遍历所有任务
-    for task_id, node in dag.items():
-        task = node["task"]
+    for task_id, task in task_status.items():
         sid = task["subject_id"]
         if not sid:
             continue
         if task["type"] in ["input", "output"]:
             subject_total_hours[sid] += task["required_hours"]
             subject_total_tasks[sid] += 1
-            if task["is_completed"]:
+            if task["assigned"]:
                 subject_reviewed_hours[sid] += task["required_hours"]
                 subject_completed_tasks[sid] += 1
             else:
@@ -86,17 +119,23 @@ def generate_schedule_v2_safe_with_progress(
 
     def subject_progress(subject_id):
         if subject_progress_strategy == 1:
-            # 按复习时长计算
             total = subject_total_hours[subject_id]
             done = subject_reviewed_hours[subject_id]
         else:
-            # 按材料数量计算
             total = subject_total_tasks[subject_id]
             done = subject_completed_tasks[subject_id]
-        if total == 0:
-            return 1.0  # 该科目无任务，视为完成
-        return done / total
+        return done / total if total > 0 else 1.0
 
+    def get_output_score(task, today):
+        if task["type"] != "output":
+            return 0
+        next_review = task.get("next_review_date")
+        if not next_review:
+            return 1  # 从未复习，默认允许安排
+        days_gap = abs((next_review - today).days)
+        return max(0, 10 - days_gap)
+
+    # 主调度循环
     last_subject = None
     subject_day_count = {}
     slot_idx = 0
@@ -106,26 +145,24 @@ def generate_schedule_v2_safe_with_progress(
         slot = available_slots[slot_idx]
         slot_length_hr = compute_duration_minutes(slot) / 60.0
         date_key = slot["date"]
-        if date_key not in subject_day_count:
-            subject_day_count[date_key] = {"input": 0, "output": 0}
+        today = datetime.strptime(date_key, "%Y-%m-%d").date()
 
-        # 重新计算 ready_tasks
+        if date_key not in subject_day_count:
+            subject_day_count[date_key] = {'input': 0, 'output': 0}
+
         ready_tasks = [
-            t
-            for t in task_pool
+            t for t in task_pool
             if not task_status[t["task_id"]]["assigned"]
             and all(task_status[dep]["assigned"] for dep in t["deps"])
         ]
 
-        # 优先：进度越慢（数值越小）、fit 当前 slot、科目轮换、type 轮换
-        ready_tasks.sort(
-            key=lambda t: (
-                subject_progress(t["subject_id"] or 0),
-                abs(task_status[t["task_id"]]["remaining_hours"] - slot_length_hr),
-                t["subject_id"] == last_subject,
-                subject_day_count[date_key][t["type"]],
-            )
-        )
+        ready_tasks.sort(key=lambda t: (
+            subject_progress(t["subject_id"] or 0),
+            -get_output_score(task_status[t["task_id"]], today),
+            abs(task_status[t["task_id"]]["remaining_hours"] - slot_length_hr),
+            t["subject_id"] == last_subject,
+            subject_day_count[date_key][t["type"]],
+        ))
 
         remaining_hr = slot_length_hr
         slot_used = False
@@ -145,16 +182,12 @@ def generate_schedule_v2_safe_with_progress(
 
                 required = tinfo["remaining_hours"]
 
-                # 尝试连续 slot 拼接
+                # 尝试连续 slot 合并
                 if required > remaining_hr:
                     acc_hr = remaining_hr
                     combined_slots = [slot]
                     future_idx = slot_idx + 1
-                    while (
-                        future_idx < total_slots
-                        and acc_hr < required
-                        and len(combined_slots) < max_combine_slots
-                    ):
+                    while future_idx < total_slots and acc_hr < required and len(combined_slots) < max_combine_slots:
                         next_slot = available_slots[future_idx]
                         if next_slot["date"] != slot["date"]:
                             break
@@ -166,22 +199,18 @@ def generate_schedule_v2_safe_with_progress(
                         remaining = required
                         for s in combined_slots:
                             use_hr = min(remaining, compute_duration_minutes(s) / 60.0)
-                            schedule.append(
-                                {
-                                    "date": s["date"],
-                                    "start": s["start"],
-                                    "end": s["end"],
-                                    "task_id": tid,
-                                    "material_id": tinfo["material_id"],
-                                    "task_type": ttype,
-                                    "subject_id": tinfo["subject_id"],
-                                    "topic_id": tinfo["topic_id"],
-                                    "hours_assigned": use_hr,
-                                }
-                            )
-                            print(
-                                f"🧩 合并 slot 安排任务：{tid}, {use_hr:.2f} 小时 @ {s['date']} {s['start']}"
-                            )
+                            schedule.append({
+                                "date": s["date"],
+                                "start": s["start"],
+                                "end": s["end"],
+                                "task_id": tid,
+                                "material_id": tinfo["material_id"],
+                                "task_type": ttype,
+                                "subject_id": tinfo["subject_id"],
+                                "topic_id": tinfo["topic_id"],
+                                "hours_assigned": use_hr
+                            })
+                            print(f"🧩 合并 slot 安排任务：{tid}, {use_hr:.2f} 小时 @ {s['date']} {s['start']}")
                             remaining -= use_hr
                             subject_day_count[s["date"]][ttype] += 1
                         tinfo["assigned"] = True
@@ -190,43 +219,27 @@ def generate_schedule_v2_safe_with_progress(
                         last_subject = tinfo["subject_id"]
                         slot_used = True
                         task_scheduled = True
-                        # 更新完成量
-                        if tinfo["subject_id"]:
-                            if subject_progress_strategy == 1:
-                                subject_reviewed_hours[tinfo["subject_id"]] += required
-                            else:
-                                subject_completed_tasks[tinfo["subject_id"]] += 1
                         break
 
                     continue
 
-                # 当前 slot 塞任务
+                # 当前 slot 安排
                 hours = min(required, remaining_hr)
-                schedule.append(
-                    {
-                        "date": slot["date"],
-                        "start": slot["start"],
-                        "end": slot["end"],
-                        "task_id": tid,
-                        "material_id": tinfo["material_id"],
-                        "task_type": ttype,
-                        "subject_id": tinfo["subject_id"],
-                        "topic_id": tinfo["topic_id"],
-                        "hours_assigned": hours,
-                    }
-                )
-                print(
-                    f"📌 安排任务：{tid}, {hours:.2f} 小时 @ {slot['date']} {slot['start']}"
-                )
+                schedule.append({
+                    "date": slot["date"],
+                    "start": slot["start"],
+                    "end": slot["end"],
+                    "task_id": tid,
+                    "material_id": tinfo["material_id"],
+                    "task_type": ttype,
+                    "subject_id": tinfo["subject_id"],
+                    "topic_id": tinfo["topic_id"],
+                    "hours_assigned": hours
+                })
+                print(f"📌 安排任务：{tid}, {hours:.2f} 小时 @ {slot['date']} {slot['start']}")
                 tinfo["remaining_hours"] -= hours
                 if tinfo["remaining_hours"] <= 0.01:
                     tinfo["assigned"] = True
-                    # 更新完成量
-                    if tinfo["subject_id"]:
-                        if subject_progress_strategy == 1:
-                            subject_reviewed_hours[tinfo["subject_id"]] += required
-                        else:
-                            subject_completed_tasks[tinfo["subject_id"]] += 1
                 subject_day_count[date_key][ttype] += 1
                 last_subject = tinfo["subject_id"]
                 remaining_hr -= hours
@@ -239,6 +252,7 @@ def generate_schedule_v2_safe_with_progress(
 
         if not slot_used:
             print(f"⚠️ 无法安排任务：{slot['date']} {slot['start']} → 空 slot")
+
         slot_idx += 1
 
     return schedule
@@ -267,9 +281,8 @@ def generate_review_plan(start_date, end_date, db_path="review_plan.db"):
     task_pool = extract_task_pool(dag)
 
     # Step 4: 调度
-    schedule = generate_schedule_v2_safe_with_progress(
-        task_pool, available_slots, dag, subject_progress_strategy=1
-    )
+    available_slots = get_available_slots(start_date, end_date, db_path)
+    schedule = generate_schedule_v3_ebbinghaus(task_pool, available_slots, dag, conn, subject_progress_strategy=1)
 
     conn.close()
     return schedule

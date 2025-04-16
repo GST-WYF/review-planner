@@ -136,3 +136,34 @@ def build_task_dag(conn):
     )
 
     return dag
+
+if __name__ == "__main__":
+    import sqlite3
+    from datetime import datetime, timedelta
+    from collections import defaultdict
+
+    # 连接到 SQLite 数据库
+    db_path = "../review_plan.db"
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+
+    # 构建 DAG
+    dag = build_task_dag(conn)
+    for task_id, node in dag.items():
+        print(f"{task_id}: {node['task']}")
+        # 输出任务信息
+        print(f"任务 ID: {task_id}")
+        print(f"任务类型: {node['task']['type']}")
+        print(f"材料 ID: {node['task']['material_id']}")
+        print(f"所需时间: {node['task']['required_hours']} 小时")
+        print(f"已复习时间: {node['task']['reviewed_hours']} 小时")
+        print(f"是否完成: {node['task']['is_completed']}")
+        print(f"科目 ID: {node['task']['subject_id']}")
+        print(f"考试 ID: {node['task']['exam_id']}")
+        print(f"知识点 ID: {node['task']['topic_id']}")
+        print(f"是否叶子节点: {node['task']['is_leaf']}")
+        print(f"依赖任务: {node['deps']}")
+        print("-" * 40)
+
+    # 关闭数据库连接
+    conn.close()
