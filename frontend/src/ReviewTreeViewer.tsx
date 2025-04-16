@@ -121,8 +121,6 @@ export default function ReviewTreeViewer() {
       importance: null
     };
 
-    console.log("📦 发送新增:", payload);
-
     await fetch('/api/topic/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -232,12 +230,6 @@ export default function ReviewTreeViewer() {
     );
   };
 
-  // return (
-  //   <div className="p-6 text-gray-800 max-w-4xl mx-auto">
-  //     <h1 className="text-2xl font-bold mb-4">📚 考试复习知识结构树</h1>
-
-  //   </div>
-  // );
   return (
     <>
       {Object.entries(subjectsByExam).map(([examIdStr, data]) => {

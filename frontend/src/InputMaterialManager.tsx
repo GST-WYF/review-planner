@@ -29,7 +29,7 @@ export default function InputMaterialManager({ topic_id }: Props) {
   };
 
   const addMaterial = async () => {
-    if (!newMaterial.type || !newMaterial.title || !newMaterial.required_hours || !newMaterial.reviewed_hours) {
+    if (!newMaterial.type || !newMaterial.title || newMaterial.required_hours == null || newMaterial.reviewed_hours == null) {
       alert("请填写所有字段");
       return;
     }
@@ -43,21 +43,26 @@ export default function InputMaterialManager({ topic_id }: Props) {
   };
 
   return (
-    <div className="text-sm space-y-2 mt-2">
-      <h3 className="font-bold text-gray-700">输入材料</h3>
+    <div className="text-xs space-y-2">
+      <div className="font-semibold text-gray-700">📥 输入材料</div>
       {materials.map(m => (
-        <div key={m.input_id} className="border p-2 rounded space-y-1">
+        <div key={m.input_id} className="border p-2 rounded">
           {editing[m.input_id] ? (
-            <>
-              <input value={form[m.input_id]?.title || ''} onChange={e =>
-                setForm(prev => ({ ...prev, [m.input_id]: { ...prev[m.input_id], title: e.target.value } }))
-              } className="border p-1 w-full" />
-              <input type="number" value={form[m.input_id]?.required_hours ?? ''} onChange={e =>
-                setForm(prev => ({ ...prev, [m.input_id]: { ...prev[m.input_id], required_hours: parseFloat(e.target.value) } }))
-              } className="border p-1 w-full" />
-              <input type="number" value={form[m.input_id]?.reviewed_hours ?? ''} onChange={e =>
-                setForm(prev => ({ ...prev, [m.input_id]: { ...prev[m.input_id], reviewed_hours: parseFloat(e.target.value) } }))
-              } className="border p-1 w-full" />
+            <div className="flex flex-wrap gap-1 items-center">
+              <input className="border p-1 w-32" value={form[m.input_id]?.title || ''}
+                onChange={e =>
+                  setForm(prev => ({ ...prev, [m.input_id]: { ...prev[m.input_id], title: e.target.value } }))
+                } placeholder="标题" />
+              <input type="number" className="border p-1 w-20" placeholder="需时"
+                value={form[m.input_id]?.required_hours ?? ''}
+                onChange={e =>
+                  setForm(prev => ({ ...prev, [m.input_id]: { ...prev[m.input_id], required_hours: parseFloat(e.target.value) } }))
+                } />
+              <input type="number" className="border p-1 w-20" placeholder="已复习"
+                value={form[m.input_id]?.reviewed_hours ?? ''}
+                onChange={e =>
+                  setForm(prev => ({ ...prev, [m.input_id]: { ...prev[m.input_id], reviewed_hours: parseFloat(e.target.value) } }))
+                } />
               <button className="text-green-600" onClick={async () => {
                 await fetch(`/api/input/${m.input_id}`, {
                   method: 'PUT',
@@ -66,45 +71,45 @@ export default function InputMaterialManager({ topic_id }: Props) {
                 });
                 setEditing(prev => ({ ...prev, [m.input_id]: false }));
                 load();
-              }}>保存</button>
-            </>
+              }}>💾</button>
+            </div>
           ) : (
-            <>
+            <div className="flex justify-between items-center">
               <div>• [{m.type}] {m.title}（{m.reviewed_hours} / {m.required_hours} 小时）</div>
-              <div className="text-xs space-x-2">
+              <div className="space-x-2">
                 <button className="text-blue-500" onClick={() => {
                   setEditing(prev => ({ ...prev, [m.input_id]: true }));
                   setForm(prev => ({ ...prev, [m.input_id]: m }));
-                }}>编辑</button>
+                }}>✏</button>
                 <button className="text-red-500" onClick={async () => {
                   await fetch(`/api/input/${m.input_id}`, { method: 'DELETE' });
                   load();
-                }}>删除</button>
+                }}>🗑</button>
               </div>
-            </>
+            </div>
           )}
         </div>
       ))}
 
       {/* 添加新材料 */}
-      <div className="space-y-1 mt-3">
-        <select className="border p-1 w-full" value={newMaterial.type || ''}
+      <div className="flex flex-wrap gap-1 items-center mt-1">
+        <select className="border p-1 text-xs" value={newMaterial.type || ''}
           onChange={e => setNewMaterial(prev => ({ ...prev, type: e.target.value }))}>
-          <option value="">选择类型</option>
+          <option value="">类型</option>
           <option value="note">笔记</option>
           <option value="video">视频</option>
-          <option value="recite">背诵材料</option>
+          <option value="recite">背诵</option>
         </select>
-        <input className="border p-1 w-full" placeholder="标题"
+        <input className="border p-1 w-32" placeholder="标题"
           value={newMaterial.title || ''}
           onChange={e => setNewMaterial(prev => ({ ...prev, title: e.target.value }))} />
-        <input type="number" className="border p-1 w-full" placeholder="需时（小时）"
+        <input type="number" className="border p-1 w-20" placeholder="需时"
           value={newMaterial.required_hours ?? ''}
           onChange={e => setNewMaterial(prev => ({ ...prev, required_hours: parseFloat(e.target.value) }))} />
-        <input type="number" className="border p-1 w-full" placeholder="已复习（小时）"
+        <input type="number" className="border p-1 w-20" placeholder="已复"
           value={newMaterial.reviewed_hours ?? ''}
           onChange={e => setNewMaterial(prev => ({ ...prev, reviewed_hours: parseFloat(e.target.value) }))} />
-        <button className="bg-green-500 text-white px-2 py-1 rounded" onClick={addMaterial}>➕ 添加材料</button>
+        <button className="bg-green-500 text-white px-2 py-0.5 rounded" onClick={addMaterial}>➕</button>
       </div>
     </div>
   );

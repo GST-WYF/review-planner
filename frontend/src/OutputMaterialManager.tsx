@@ -36,30 +36,29 @@ export default function OutputMaterialManager({ owner_type, owner_id }: Props) {
     await fetch("/api/material", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        owner_type,
-        owner_id,
-        ...newMaterial,
-      }),
+      body: JSON.stringify({ owner_type, owner_id, ...newMaterial }),
     });
     setNewMaterial({});
     loadMaterials();
   };
 
   return (
-    <div className="text-sm space-y-2">
-      <h3 className="font-bold text-gray-700">输出材料列表</h3>
+    <div className="text-xs space-y-2">
+      <div className="font-semibold text-gray-700">📤 输出材料</div>
+
       {materials.map(m => (
-        <div key={m.output_id} className="p-2 border rounded space-y-1">
+        <div key={m.output_id} className="border p-2 rounded">
           {editing[m.output_id] ? (
-            <>
-              <input value={form[m.output_id]?.title || ''} onChange={e =>
-                setForm(prev => ({ ...prev, [m.output_id]: { ...prev[m.output_id], title: e.target.value } }))
-              } className="border p-1 w-full" />
-              <input type="number" min="0" max="1" step="0.01" value={form[m.output_id]?.accuracy ?? ''}
+            <div className="flex flex-wrap gap-1 items-center">
+              <input className="border p-1 w-32" value={form[m.output_id]?.title || ''}
+                onChange={e =>
+                  setForm(prev => ({ ...prev, [m.output_id]: { ...prev[m.output_id], title: e.target.value } }))
+                } placeholder="标题" />
+              <input type="number" className="border p-1 w-20" placeholder="准确率"
+                value={form[m.output_id]?.accuracy ?? ''}
                 onChange={e =>
                   setForm(prev => ({ ...prev, [m.output_id]: { ...prev[m.output_id], accuracy: parseFloat(e.target.value) } }))
-                } className="border p-1 w-full" />
+                } />
               <button className="text-green-600" onClick={async () => {
                 await fetch(`/api/output/${m.output_id}`, {
                   method: "PUT",
@@ -68,38 +67,41 @@ export default function OutputMaterialManager({ owner_type, owner_id }: Props) {
                 });
                 setEditing(prev => ({ ...prev, [m.output_id]: false }));
                 loadMaterials();
-              }}>保存</button>
-            </>
+              }}>💾</button>
+            </div>
           ) : (
-            <>
-              <div>• [{m.type}] {m.title}（准确率：{m.accuracy ?? '未设置'}）</div>
-              <div className="text-xs space-x-2">
+            <div className="flex justify-between items-center">
+              <div>• [{m.type}] {m.title}（准确率: {m.accuracy ?? '未设置'}）</div>
+              <div className="space-x-2">
                 <button className="text-blue-500" onClick={() => {
                   setEditing(prev => ({ ...prev, [m.output_id]: true }));
                   setForm(prev => ({ ...prev, [m.output_id]: m }));
-                }}>✏ 编辑</button>
+                }}>✏</button>
                 <button className="text-red-500" onClick={async () => {
                   await fetch(`/api/output/${m.output_id}`, { method: 'DELETE' });
                   loadMaterials();
-                }}>🗑 删除</button>
+                }}>🗑</button>
               </div>
-            </>
+            </div>
           )}
         </div>
       ))}
-      <div className="space-y-1 mt-2">
-        <select className="border p-1 w-full" value={newMaterial.type || ''}
+
+      {/* 添加新材料行 */}
+      <div className="flex flex-wrap gap-1 items-center mt-2">
+        <select className="border p-1 text-xs" value={newMaterial.type || ''}
           onChange={e => setNewMaterial(prev => ({ ...prev, type: e.target.value }))}>
-          <option value="">选择类型</option>
+          <option value="">类型</option>
           <option value="exercise_set">练习题</option>
           <option value="mock_exam">模拟卷</option>
         </select>
-        <input className="border p-1 w-full" placeholder="标题" value={newMaterial.title || ''}
+        <input className="border p-1 w-32" placeholder="标题"
+          value={newMaterial.title || ''}
           onChange={e => setNewMaterial(prev => ({ ...prev, title: e.target.value }))} />
-        <input className="border p-1 w-full" type="number" placeholder="准确率 (可选)"
+        <input type="number" className="border p-1 w-20" placeholder="准确率"
           value={newMaterial.accuracy ?? ''}
           onChange={e => setNewMaterial(prev => ({ ...prev, accuracy: parseFloat(e.target.value) }))} />
-        <button className="bg-blue-500 text-white px-2 py-1 rounded" onClick={addMaterial}>➕ 添加材料</button>
+        <button className="bg-blue-500 text-white px-2 py-0.5 rounded" onClick={addMaterial}>➕</button>
       </div>
     </div>
   );
