@@ -79,6 +79,22 @@ app.add_middleware(
 
 DB_NAME = "review_plan.db"
 
+OUTPUT_MATERIAL_TYPES_MAPPING = {
+    "mock_exam": "模拟卷",
+    "exercise_set": "练习题",
+}
+
+INPUT_MATERIAL_TYPES_MAPPING = {
+    "note": "笔记",
+    "video": "视频",
+    "recite": "背诵",
+}
+
+NODE_TYPES_MAPPING = {
+    "exam": "考试",
+    "subject": "科目",
+    "topic": "知识点",
+}
 
 def fetch_tree(subject_id: int) -> List[Dict[str, Any]]:
     def get_children(conn, parent_id):
@@ -185,7 +201,7 @@ def get_topic_materials(topic_id: int):
         inputs = [
             {
                 "input_id": row[0],  # ✅ 加上 ID
-                "type": row[1],
+                "type": INPUT_MATERIAL_TYPES_MAPPING[row[1]],
                 "title": row[2],
                 "required_hours": row[3],
                 "reviewed_hours": row[4],
@@ -204,7 +220,7 @@ def get_topic_materials(topic_id: int):
         outputs = [
             {
                 "output_id": row[0],  # ✅ 加上 ID
-                "type": row[1],
+                "type": OUTPUT_MATERIAL_TYPES_MAPPING[row[1]],
                 "title": row[2],
                 "accuracy": row[3],
                 "required_hours": row[4],
@@ -551,7 +567,7 @@ def get_materials(owner_type: str, owner_id: int):
         return [
             {
                 "output_id": row[0],
-                "type": row[1],
+                "type": OUTPUT_MATERIAL_TYPES_MAPPING[row[1]],
                 "title": row[2],
                 "accuracy": row[3],
                 "required_hours": row[4],
@@ -669,6 +685,7 @@ def get_review_tasks():
                 res = cursor.fetchone()
                 task["output_material_title"] = res[0] if res else None
 
+            task["node_type"] = NODE_TYPES_MAPPING[task["node_type"]]
             result.append(task)
 
         return result

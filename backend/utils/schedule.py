@@ -370,9 +370,11 @@ def format_schedule_human_readable(schedule, db_path="review_plan.db"):
         # 构建任务名称
         if task_type == "input":
             title = input_map.get(material_id, "未知输入材料")
+            task_type = "👀📘 输入"
             task_label = f"{subject_name}-{'-'.join(topic_path)}-笔记《{title}》"
         elif task_type == "output":
             title = output_map.get(material_id, "未知输出材料")
+            task_type = "✍️🧠 输出"
             task_label = f"{subject_name}-{'-'.join(topic_path)}-练习《{title}》"
         else:
             task_label = f"{subject_name}-未知任务"

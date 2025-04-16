@@ -74,19 +74,19 @@ export default function TopicTree({
                   className="text-blue-600"
                   onClick={() => setEditing(true)}
                 >
-                  编辑
+                  ✏
                 </button>
                 <button
                   onClick={() => setShowMaterials(!showMaterials)}
                   className="text-indigo-600"
                 >
-                  {showMaterials ? '收起材料' : '查看材料'}
+                  {showMaterials ? '收起' : '查看'}
                 </button>
                 <button
                   onClick={handleDelete}
                   className="text-red-600"
                 >
-                  删除
+                  🗑
                 </button>
                 <button
                   onClick={() => setAddingChild(true)}

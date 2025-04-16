@@ -52,7 +52,7 @@ export default function OutputMaterialManager({ owner_type, owner_id }: Props) {
 
   return (
     <div className="text-xs space-y-2">
-      <div className="font-semibold text-gray-700">📤 输出材料</div>
+      <div className="font-semibold text-gray-700">✍️🧠 输出</div>
 
       {materials.map(m => (
         <div key={m.output_id} className="border p-2 rounded">
@@ -79,7 +79,7 @@ export default function OutputMaterialManager({ owner_type, owner_id }: Props) {
                   }))
                 }
               />
-              <input type="number" className="border p-1 w-20" placeholder="已复"
+              <input type="number" className="border p-1 w-20" placeholder="已复习"
                 value={form[m.output_id]?.reviewed_hours ?? ''}
                 onChange={e =>
                   setForm(prev => ({
@@ -113,7 +113,7 @@ export default function OutputMaterialManager({ owner_type, owner_id }: Props) {
           ) : (
             <div className="flex justify-between items-center">
               <div>
-                • [{m.type}] {m.title}（准确率: {m.accuracy ?? '未设置'}，
+                • [{m.type}] {m.title}（准确率: {m.accuracy ?? '无'}，
                 复习: {m.reviewed_hours} / {m.required_hours} 小时）
                 {m.is_completed && <span className="text-green-600 ml-2">✅ 已完成</span>}
               </div>
@@ -149,7 +149,7 @@ export default function OutputMaterialManager({ owner_type, owner_id }: Props) {
         <input type="number" className="border p-1 w-20" placeholder="需时"
           value={newMaterial.required_hours ?? ''}
           onChange={e => setNewMaterial(prev => ({ ...prev, required_hours: parseFloat(e.target.value) }))} />
-        <input type="number" className="border p-1 w-20" placeholder="已复"
+        <input type="number" className="border p-1 w-20" placeholder="已复习"
           value={newMaterial.reviewed_hours ?? ''}
           onChange={e => setNewMaterial(prev => ({ ...prev, reviewed_hours: parseFloat(e.target.value) }))} />
         <label className="flex items-center gap-1 text-xs">

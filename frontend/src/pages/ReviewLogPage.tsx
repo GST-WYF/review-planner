@@ -44,9 +44,9 @@ export default function ReviewLogPage() {
               <td className="p-2">{log.node_type}：{log.node_name || log.node_id}</td>
               <td className="p-2">
                 {log.input_material_title
-                  ? `输入：${log.input_material_title}`
+                  ? `👀📘 输入：${log.input_material_title}`
                   : log.output_material_title
-                  ? `输出：${log.output_material_title}`
+                  ? `✍️🧠 输出：${log.output_material_title}`
                   : '—'}
               </td>
               <td className="p-2">{log.duration_minutes} 分钟</td>

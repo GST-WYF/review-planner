@@ -7,7 +7,13 @@ const timeSlots = [
   '17:00', '18:00', '19:00', '20:00', '21:00', '22:00'
 ];
 
-const daysOfWeek = ['一', '二', '三', '四', '五', '六', '日'];
+const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+const today = new Date();
+const todayIndex = today.getDay(); // 0 (周日) 到 6 (周六)
+
+const daysOfWeek = Array.from({ length: 7 }, (_, i) => {
+  return weekdays[(todayIndex + i) % 7];
+});
 
 type Task = {
   date: string;
@@ -57,7 +63,7 @@ export default function WeeklySchedulePage() {
 
   return (
     <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">🗓️ 本周排班</h1>
+      <h1 className="text-2xl font-bold mb-4">🗓️ 本周计划</h1>
 
       <div className="overflow-auto border rounded bg-white mb-8">
         <div className="grid grid-cols-[80px_repeat(7,minmax(120px,1fr))]">
@@ -85,7 +91,7 @@ export default function WeeklySchedulePage() {
                   >
                     {tasks.map((task, i) => (
                       <div key={i} className="mb-1">
-                        <span className="font-semibold text-green-800">{task.task_type === 'input' ? '📝' : '📤'}</span>
+                        <span className="font-semibold text-green-800">{task.task_type === '👀📘 输入' ? '👀📘' : '✍️🧠'}</span>
                         {task.task_name}
                       </div>
                     ))}

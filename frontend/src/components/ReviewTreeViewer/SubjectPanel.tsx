@@ -55,7 +55,7 @@ export default function SubjectPanel({
       {subjects.map(subject => (
         <div key={subject.subject_id} className="mb-4">
           <h3 className="text-xl font-semibold mb-1">
-            📘 {subject.subject_name}
+            📚 {subject.subject_name}
           </h3>
           <div className="mt-2">
             <OutputMaterialManager
