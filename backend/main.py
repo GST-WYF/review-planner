@@ -6,8 +6,10 @@ from typing import Any, Dict, List, Optional
 from fastapi import Body, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from utils.achievement_registry import load_achievement_registry
 from utils.level import calculate_level
 from utils.schedule import format_schedule_human_readable, generate_review_plan
+from utils.user_context import build_user_context
 
 
 class TopicCreate(BaseModel):
@@ -62,6 +64,13 @@ class SpecialTimeBlock(BaseModel):
     end_time: str
 
 
+class UserContext(BaseModel):
+    current_streak: int
+    total_review_minutes: int
+    accuracy_records: List[float]
+    completed_materials: List[Dict[str, Any]]
+
+
 app = FastAPI()
 
 app.add_middleware(
@@ -90,6 +99,8 @@ NODE_TYPES_MAPPING = {
     "subject": "科目",
     "topic": "知识点",
 }
+
+registry = load_achievement_registry()
 
 
 def fetch_tree(subject_id: int) -> List[Dict[str, Any]]:
@@ -857,3 +868,40 @@ def get_cumulative_weekly_exp():
         cumulative_list.append({"date": day, "cumulative_exp": round(running_total, 2)})
 
     return cumulative_list
+
+
+@app.get("/api/achievements/all")
+def get_all_achievements():
+    return {
+        "achievements": [
+            {
+                "code": a.code,
+                "name": a.name,
+                "icon": a.icon,
+                "description": a.description,
+                "hint": a.hint,
+                "is_hidden": a.is_hidden,
+                "category": a.category,
+            }
+            for a in registry.achievements
+        ]
+    }
+
+
+@app.get("/api/achievements/unlocked")
+def get_unlocked_achievements():
+    context = build_user_context(DB_NAME)
+    unlocked = registry.check_all(context)
+
+    return {
+        "unlocked": [
+            {
+                "code": a.code,
+                "name": a.name,
+                "icon": a.icon,
+                "description": a.description,
+                "hint": a.hint,
+            }
+            for a in unlocked
+        ]
+    }
