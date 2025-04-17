@@ -1,19 +1,13 @@
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-import sqlite3
-from typing import List, Dict, Any, Optional
-from pydantic import BaseModel
-from fastapi import Request
-from fastapi import Body
-from datetime import date
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-from typing import List
-from datetime import datetime
-import sqlite3
 import os
-from utils.schedule import generate_review_plan, format_schedule_human_readable
+import sqlite3
+from datetime import date, datetime, timedelta
+from typing import Any, Dict, List, Optional
+
+from fastapi import Body, FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 from utils.level import calculate_level
+from utils.schedule import format_schedule_human_readable, generate_review_plan
 
 
 class TopicCreate(BaseModel):
@@ -807,3 +801,59 @@ def get_user_level():
     result = calculate_level(total_exp)
     result["raw_exp"] = total_exp
     return result
+
+
+@app.get("/api/exp-weekly")
+def get_cumulative_weekly_exp():
+    today = datetime.today().date()
+    start_day = today - timedelta(days=6)
+
+    with sqlite3.connect(DB_NAME) as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT reviewed_at, input_material_id, output_material_id, duration_minutes
+            FROM ReviewTaskLog
+            WHERE reviewed_at >= ?
+            ORDER BY reviewed_at ASC
+        """,
+            (start_day.isoformat(),),
+        )
+        rows = cursor.fetchall()
+
+        # 查询所有 output material 的数据（缓存）
+        cursor.execute("SELECT output_id, accuracy, is_completed FROM OutputMaterial")
+        output_info = {row[0]: (row[1], row[2]) for row in cursor.fetchall()}
+
+    # 初始化
+    exp_by_day = {}
+    cumulative_exp = 0
+
+    for day_offset in range(7):
+        day = (start_day + timedelta(days=day_offset)).isoformat()
+        exp_by_day[day] = 0
+
+    # 按时间顺序处理经验
+    for reviewed_at, input_id, output_id, minutes in rows:
+        minutes = minutes or 0
+        reviewed_date = reviewed_at
+        exp = 0
+
+        if input_id:
+            exp = minutes / 60.0
+        elif output_id in output_info:
+            accuracy, is_completed = output_info[output_id]
+            if is_completed and accuracy is not None:
+                exp = minutes * (1 / 0.6) * accuracy
+
+        if reviewed_date in exp_by_day:
+            exp_by_day[reviewed_date] += exp
+
+    # 转为累加值
+    cumulative_list = []
+    running_total = 0
+    for day in sorted(exp_by_day.keys()):
+        running_total += exp_by_day[day]
+        cumulative_list.append({"date": day, "cumulative_exp": round(running_total, 2)})
+
+    return cumulative_list
