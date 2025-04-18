@@ -20,6 +20,10 @@ export default function OutputMaterialManager({ owner_type, owner_id }: Props) {
   const [editing, setEditing] = useState<Record<number, boolean>>({});
   const [form, setForm] = useState<Record<number, Partial<Material>>>({});
   const [newMaterial, setNewMaterial] = useState<Partial<Material>>({});
+  const OUTPUT_MATERIAL_TYPES_MAPPING: Record<string, string> = {
+    mock_exam: "模拟卷",
+    exercise_set: "练习题",
+  };
 
   useEffect(() => {
     loadMaterials();
@@ -113,7 +117,7 @@ export default function OutputMaterialManager({ owner_type, owner_id }: Props) {
           ) : (
             <div className="flex justify-between items-center">
               <div>
-                • [{m.type}] {m.title}（准确率: {m.accuracy ?? '无'}，
+                • [{OUTPUT_MATERIAL_TYPES_MAPPING[m.type] || m.type}] {m.title}（准确率: {m.accuracy ?? '无'}，
                 复习: {m.reviewed_hours} / {m.required_hours} 小时）
                 {m.is_completed && <span className="text-green-600 ml-2">✅ 已完成</span>}
               </div>

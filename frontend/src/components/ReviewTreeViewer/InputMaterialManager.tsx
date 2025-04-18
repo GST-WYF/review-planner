@@ -18,6 +18,12 @@ export default function InputMaterialManager({ topic_id }: Props) {
   const [editing, setEditing] = useState<Record<number, boolean>>({});
   const [form, setForm] = useState<Record<number, Partial<InputMaterial>>>({});
   const [newMaterial, setNewMaterial] = useState<Partial<InputMaterial>>({});
+  const INPUT_MATERIAL_TYPES_MAPPING: Record<string, string> = {
+    note: "笔记",
+    video: "视频",
+    recite: "背诵",
+  };
+  
 
   useEffect(() => {
     load();
@@ -95,7 +101,7 @@ export default function InputMaterialManager({ topic_id }: Props) {
           ) : (
             <div className="flex justify-between items-center">
               <div>
-                • [{m.type}] {m.title}（{m.reviewed_hours} / {m.required_hours} 小时）
+                • [{INPUT_MATERIAL_TYPES_MAPPING[m.type] || m.type}] {m.title}（{m.reviewed_hours} / {m.required_hours} 小时）
                 {m.is_completed && <span className="text-green-600 ml-2">✅ 已完成</span>}
               </div>
               <div className="space-x-2">
