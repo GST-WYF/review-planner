@@ -38,6 +38,19 @@ def insert_data():
     with sqlite3.connect(DB_NAME) as conn:
         cursor = conn.cursor()
 
+        ### 插入【技能】
+        cursor.execute(
+            "INSERT INTO Exam (exam_name, priority) VALUES (?, ?)",
+            (SKILL_EXAM_NAME, 6),
+        )
+        skill_exam_id = cursor.lastrowid
+
+        for subj in skill_subjects:
+            cursor.execute(
+                "INSERT INTO Subject (exam_id, subject_name, priority) VALUES (?, ?, ?)",
+                (skill_exam_id, subj, 5),
+            )
+
         ### 插入【笔试】
         cursor.execute(
             "INSERT INTO Exam (exam_name, priority) VALUES (?, ?)",
@@ -103,19 +116,6 @@ def insert_data():
                         required_hours,
                     ),
                 )
-
-        ### 插入【技能】
-        cursor.execute(
-            "INSERT INTO Exam (exam_name, priority) VALUES (?, ?)",
-            (SKILL_EXAM_NAME, 6),
-        )
-        skill_exam_id = cursor.lastrowid
-
-        for subj in skill_subjects:
-            cursor.execute(
-                "INSERT INTO Subject (exam_id, subject_name, priority) VALUES (?, ?, ?)",
-                (skill_exam_id, subj, 5),
-            )
 
         ### 默认时间安排（共用）
         for day in range(7):
