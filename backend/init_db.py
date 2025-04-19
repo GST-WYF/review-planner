@@ -5,13 +5,15 @@ DB_NAME = "review_plan.db"
 schema = """
 CREATE TABLE IF NOT EXISTS Exam (
     exam_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    exam_name TEXT NOT NULL
+    exam_name TEXT NOT NULL,
+    priority INTEGER NOT NULL DEFAULT 5 CHECK(priority BETWEEN 0 AND 9)
 );
 
 CREATE TABLE IF NOT EXISTS Subject (
     subject_id INTEGER PRIMARY KEY AUTOINCREMENT,
     exam_id INTEGER NOT NULL,
     subject_name TEXT NOT NULL,
+    priority INTEGER NOT NULL DEFAULT 5 CHECK(priority BETWEEN 0 AND 9),
     FOREIGN KEY (exam_id) REFERENCES Exam(exam_id)
 );
 
@@ -20,8 +22,8 @@ CREATE TABLE IF NOT EXISTS TopicNode (
     subject_id INTEGER NOT NULL,
     parent_id INTEGER,
     name TEXT NOT NULL,
-    accuracy REAL,
-    importance REAL,
+    accuracy REAL CHECK (accuracy BETWEEN 0 AND 1),
+    importance INTEGER NOT NULL DEFAULT 5 CHECK(importance BETWEEN 0 AND 9),
     is_leaf BOOLEAN NOT NULL,
     FOREIGN KEY (subject_id) REFERENCES Subject(subject_id),
     FOREIGN KEY (parent_id) REFERENCES TopicNode(topic_id)
@@ -44,7 +46,7 @@ CREATE TABLE IF NOT EXISTS OutputMaterial (
     owner_id INTEGER NOT NULL,
     type TEXT CHECK(type IN ('exercise_set', 'mock_exam')),
     title TEXT NOT NULL,
-    accuracy REAL,
+    accuracy REAL CHECK (accuracy BETWEEN 0 AND 1),
     required_hours REAL NOT NULL,
     reviewed_hours REAL NOT NULL,
     is_completed BOOLEAN NOT NULL DEFAULT 0
@@ -78,12 +80,14 @@ CREATE TABLE IF NOT EXISTS SpecialSchedule (
 );
 """
 
+
 def initialize_database():
     with sqlite3.connect(DB_NAME) as conn:
         cursor = conn.cursor()
         cursor.executescript(schema)
         conn.commit()
     print("✅ 数据库初始化完成！")
+
 
 if __name__ == "__main__":
     initialize_database()
