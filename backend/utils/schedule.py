@@ -1,405 +1,227 @@
+from __future__ import annotations
+
 from datetime import datetime, timedelta
-import sqlite3
+from itertools import groupby
+from typing import List, Dict, Any, Tuple, Optional
+from .dag import DAG
+from .dag import Material
 from .time_slot import get_available_slots
-from .dag import build_task_dag
 
 
-def find_output_by_topic(dag, topic_id):
-    for tid, node in dag.items():
-        if node["task"]["type"] == "output" and node["task"]["topic_id"] == topic_id:
-            return tid
-    return None
+# ────────────────────────────────────────────────────────────
+# 1. 内部辅助工具
+# ────────────────────────────────────────────────────────────
+_DAY_CYCLE: Tuple[str, str, str] = ("passive", "active", "output")
+_ALLOWED_TYPES: Dict[str, Tuple[str, ...]] = {
+    "passive": ("note", "video"),
+    "active": ("recite",),
+    "output": ("exercise_set", "mock_exam"),
+}
 
 
-def find_output_by_subject(dag, subject_id):
-    for tid, node in dag.items():
-        if (
-            node["task"]["type"] == "output"
-            and node["task"]["subject_id"] == subject_id
-        ):
-            return tid
-    return None
+def _split_to_30min_slots(slot: Dict[str, str]) -> List[Dict[str, str]]:
+    """把一个大段切成若干 30 min 子段。"""
+    start_dt = datetime.strptime(f"{slot['date']} {slot['start']}", "%Y-%m-%d %H:%M")
+    end_dt   = datetime.strptime(f"{slot['date']} {slot['end']}",   "%Y-%m-%d %H:%M")
+
+    subs = []
+    while start_dt < end_dt:
+        sub_end = min(start_dt + timedelta(minutes=30), end_dt)
+        subs.append(
+            {
+                "date": slot["date"],
+                "start": start_dt.strftime("%H:%M"),
+                "end":   sub_end.strftime("%H:%M"),
+            }
+        )
+        start_dt = sub_end
+    return subs
 
 
-def find_output_by_exam(dag, exam_id):
-    for tid, node in dag.items():
-        if node["task"]["type"] == "output" and node["task"]["exam_id"] == exam_id:
-            return tid
-    return None
+def _are_contiguous(a: Dict[str, str], b: Dict[str, str]) -> bool:
+    """判断两个 30 min 段在同一天且首尾相接。"""
+    return (
+        a["date"] == b["date"]
+        and a["end"] == b["start"]
+    )
 
 
-def extract_task_pool(dag):
-    task_pool = []
-    for task_id, node in dag.items():
-        task = node["task"]
-        if not task["is_completed"]:
-            task_pool.append(
-                {
-                    **task,
-                    "deps": list(node["deps"]),
-                    "assigned": False,
-                    "remaining_hours": max(
-                        0, task["required_hours"] - task["reviewed_hours"]
-                    ),
-                }
-            )
-    return task_pool
+def _slot_hours(seg_list: List[Dict[str, str]]) -> float:
+    """计算若干连续子段总时长（小时）。"""
+    t0 = datetime.strptime(f"{seg_list[0]['date']} {seg_list[0]['start']}", "%Y-%m-%d %H:%M")
+    t1 = datetime.strptime(f"{seg_list[-1]['date']} {seg_list[-1]['end']}",  "%Y-%m-%d %H:%M")
+    return (t1 - t0).total_seconds() / 3600.0
 
-def attach_next_review_dates_to_output_tasks(task_status, conn):
-    cursor = conn.cursor()
 
-    # 艾宾浩斯推荐间隔（第 N 次复习后）
-    intervals = [1, 2, 4, 7, 15]
+# ───────────────────── 核心调度 ──────────────────────
+def schedule_review(dag: "DAG", time_slots: List[Dict[str, str]]) -> List[Dict[str, Any]]:
+    # 1) 切 30 min 子段
+    segs = []
+    for s in sorted(time_slots, key=lambda x: (x["date"], x["start"])):
+        segs.extend(_split_to_30min_slots(s))
 
-    for task_id, task in task_status.items():
-        if task["type"] != "output":
-            continue
+    plan, i = [], 0
+    while i < len(segs):
+        base_idx = (_DAY_CYCLE.index("passive")       # 先用当天循环起点
+                    + i) % 3                          # 保持日内节奏一致
+        consumed = False                              # 该 slot 是否成功分配
 
-        output_id = task["material_id"]
-        cursor.execute("""
-            SELECT reviewed_at FROM ReviewTaskLog
-            WHERE output_material_id = ?
-            ORDER BY reviewed_at ASC
-        """, (output_id,))
-        review_dates = [datetime.strptime(row[0], "%Y-%m-%d").date() for row in cursor.fetchall()]
+        tried_pairs: set[tuple[int, int]] = set()     # (exam_id, subject_id) 已试过
 
-        if not review_dates:
-            task["next_review_date"] = None  # 从未复习过，可随时安排
-            continue
+        while True:                                   # 在当前 30 min 内遍历 exam/subject
+            exam = dag.select_next_exam()
+            if exam is None:               # 全部完成
+                return plan
 
-        num_reviews = len(review_dates)
-        last_review = review_dates[-1]
+            subj = dag.select_next_subject(exam)
 
-        if num_reviews >= len(intervals):
-            interval_days = intervals[-1]
-        else:
-            interval_days = intervals[num_reviews]
+            subj_id = subj.node_id if subj else -1
+            if (exam.node_id, subj_id) in tried_pairs:
+                break                      # 所有 (exam, subject) 组合都试过
+            tried_pairs.add((exam.node_id, subj_id))
 
-        next_review_date = last_review + timedelta(days=interval_days)
-        task["next_review_date"] = next_review_date
+            # -------- 尝试 3 种 slot_type --------
+            for shift in range(3):
+                slot_type = _DAY_CYCLE[(base_idx + shift) % 3]
+                allow     = _ALLOWED_TYPES[slot_type]
 
-def generate_schedule_v3_ebbinghaus_full_fill(task_pool, available_slots, dag, conn,
-                                               subject_progress_strategy=1,
-                                               max_combine_slots=3):
-    from collections import defaultdict
-    from datetime import datetime
+                if slot_type in ("passive", "active"):
+                    window   = [segs[i]]
+                    max_h    = 0.5
+                    task = dag.get_next_task(exam, subj, allow, max_h)
 
-    schedule = []
+                else:   # output —— 逐段延长，≤2 h
+                    task, window = None, []
+                    for seg_len in range(1, min(4, len(segs) - i) + 1):
+                        w = segs[i:i+seg_len]
+                        if any(not _are_contiguous(w[k], w[k+1]) for k in range(len(w)-1)):
+                            break
+                        task = dag.get_next_task(exam, subj, allow, 0.5*seg_len)
+                        if task:
+                            window = w
+                            break
 
-    task_status = {
-        task_id: {
-            **node["task"],
-            "assigned": node["task"]["is_completed"],
-            "remaining_hours": max(0, node["task"]["required_hours"] - node["task"]["reviewed_hours"])
+                if task:        # ← 成功
+                    dag.update_task(task, _slot_hours(window))
+                    plan.append({
+                        "date":  window[0]["date"],
+                        "start": window[0]["start"],
+                        "end":   window[-1]["end"],
+                        "slot_type": slot_type,
+                        "task_id":    task.material_id,
+                        "task_title": task.title,
+                    })
+                    i += len(window)       # 消费子段
+                    consumed = True
+                    break                  # 跳出 shift 循环
+
+            if consumed:
+                break                      # 当前 30 min 已分配成功
+
+        if not consumed:
+            i += 1                         # 该子段没人用→空置
+
+    return plan
+
+# def to_frontend_format(plan: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+#     """
+#     将 schedule_review 生成的 plan（包含 slot_type / task_title）转换为前端友好结构。
+
+#     返回列表中每条记录形如:
+#         {
+#             "date": "2025-08-01",
+#             "start": "2025-08-01T12:30:00",
+#             "end":   "2025-08-01T14:00:00",
+#             "task_type": "output",         # passive | active | output
+#             "task_name": "高数期末题库（上）",
+#             "hours_assigned": 1.5          # float, 保留两位小数
+#         }
+#     """
+#     fmt: List[Dict[str, Any]] = []
+
+#     for row in plan:
+#         start_iso = f"{row['date']}T{row['start']}:00"
+#         end_iso   = f"{row['date']}T{row['end']}:00"
+
+#         hrs = round(
+#             (datetime.fromisoformat(end_iso) - datetime.fromisoformat(start_iso))
+#             .total_seconds() / 3600.0,
+#             2,
+#         )
+
+#         fmt.append(
+#             {
+#                 "date": row["date"],
+#                 "start": start_iso,
+#                 "end": end_iso,
+#                 "task_type": row["slot_type"],
+#                 "task_name": row["task_title"],
+#                 "hours_assigned": hrs,
+#             }
+#         )
+
+#     return fmt
+
+def to_frontend_format(plan: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    将 schedule_review 生成的 plan（包含 slot_type / task_title）转换为前端友好结构。
+
+    返回列表中每条记录形如:
+        {
+            "date": "2025-08-01",
+            "start": "14:00",
+            "end":   "16:00",
+            "task_type": "✍️🧠 输出",    # 👀📘 输入 | 🤔📘 输入 | ✍️🧠 输出
+            "task_name": "高数期末题库（上）",
+            "hours_assigned": 2.0
         }
-        for task_id, node in dag.items()
+    """
+    type_mapping = {
+        "passive": "👀📘 输入",
+        "active": "🤔📘 输入",
+        "output": "✍️🧠 输出",
     }
 
-    attach_next_review_dates_to_output_tasks(task_status, conn)
+    fmt: List[Dict[str, Any]] = []
 
-    subject_total_hours = defaultdict(float)
-    subject_reviewed_hours = defaultdict(float)
-    subject_total_tasks = defaultdict(int)
-    subject_completed_tasks = defaultdict(int)
+    for row in plan:
+        start_time = row["start"]  # 已经是 "HH:MM" 格式
+        end_time = row["end"]      # 已经是 "HH:MM" 格式
 
-    for task_id, task in task_status.items():
-        sid = task["subject_id"]
-        if not sid:
-            continue
-        if task["type"] in ["input", "output"]:
-            subject_total_hours[sid] += task["required_hours"]
-            subject_total_tasks[sid] += 1
-            if task["assigned"]:
-                subject_reviewed_hours[sid] += task["required_hours"]
-                subject_completed_tasks[sid] += 1
-            else:
-                subject_reviewed_hours[sid] += task["reviewed_hours"]
+        # 计算小时数
+        start_dt = datetime.strptime(start_time, "%H:%M")
+        end_dt = datetime.strptime(end_time, "%H:%M")
+        delta_seconds = (end_dt - start_dt).total_seconds()
+        if delta_seconds < 0:
+            delta_seconds += 24 * 3600  # 处理跨午夜情况
 
-    def subject_progress(subject_id):
-        if subject_progress_strategy == 1:
-            total = subject_total_hours[subject_id]
-            done = subject_reviewed_hours[subject_id]
-        else:
-            total = subject_total_tasks[subject_id]
-            done = subject_completed_tasks[subject_id]
-        return done / total if total > 0 else 1.0
+        hrs = round(delta_seconds / 3600.0, 2)
 
-    def get_output_score(task, today):
-        if task["type"] != "output":
-            return 0
-        next_review = task.get("next_review_date")
-        if not next_review:
-            return 1
-        days_gap = abs((next_review - today).days)
-        return max(0, 10 - days_gap)
+        task_type_label = type_mapping.get(row["slot_type"], "❓ 未知类型")
 
-    last_subject = None
-    subject_day_count = {}
-    slot_idx = 0
-    total_slots = len(available_slots)
-
-    while slot_idx < total_slots:
-        slot = available_slots[slot_idx]
-        slot_length_hr = compute_duration_minutes(slot) / 60.0
-        remaining_hr = slot_length_hr
-        date_key = slot["date"]
-        today = datetime.strptime(date_key, "%Y-%m-%d").date()
-
-        if date_key not in subject_day_count:
-            subject_day_count[date_key] = {'input': 0, 'output': 0}
-
-        slot_used = False
-        attempt = 0
-
-        while remaining_hr > 0.01 and attempt < 10:
-            attempt += 1
-
-            ready_tasks = [
-                t for t in task_pool
-                if not task_status[t["task_id"]]["assigned"]
-                and all(task_status[dep]["assigned"] for dep in t["deps"])
-            ]
-
-            if not ready_tasks:
-                break
-
-            ready_tasks.sort(key=lambda t: (
-                subject_progress(t["subject_id"] or 0),
-                -get_output_score(task_status[t["task_id"]], today),
-                abs(task_status[t["task_id"]]["remaining_hours"] - remaining_hr),
-                t["subject_id"] == last_subject,
-                subject_day_count[date_key][t["type"]],
-            ))
-
-            task_scheduled = False
-
-            for task in ready_tasks:
-                tid = task["task_id"]
-                tinfo = task_status[tid]
-                ttype = tinfo["type"]
-
-                if subject_day_count[date_key][ttype] >= 2:
-                    continue
-
-                required = tinfo["remaining_hours"]
-
-                # 拼 slot 执行长任务
-                if required > remaining_hr:
-                    acc_hr = remaining_hr
-                    combined_slots = [slot]
-                    future_idx = slot_idx + 1
-                    while future_idx < total_slots and acc_hr < required and len(combined_slots) < max_combine_slots:
-                        next_slot = available_slots[future_idx]
-                        if next_slot["date"] != slot["date"]:
-                            break
-                        acc_hr += compute_duration_minutes(next_slot) / 60.0
-                        combined_slots.append(next_slot)
-                        future_idx += 1
-
-                    if acc_hr >= required:
-                        remaining = required
-                        for s in combined_slots:
-                            use_hr = min(remaining, compute_duration_minutes(s) / 60.0)
-                            if use_hr <= 0.01:
-                                continue
-                            schedule.append({
-                                "date": s["date"],
-                                "start": s["start"],
-                                "end": s["end"],
-                                "task_id": tid,
-                                "material_id": tinfo["material_id"],
-                                "task_type": ttype,
-                                "subject_id": tinfo["subject_id"],
-                                "topic_id": tinfo["topic_id"],
-                                "hours_assigned": use_hr
-                            })
-                            print(f"🧩 合并 slot 安排任务：{tid}, {use_hr:.2f} 小时 @ {s['date']} {s['start']}")
-                            remaining -= use_hr
-                            subject_day_count[s["date"]][ttype] += 1
-                        tinfo["assigned"] = True
-                        tinfo["remaining_hours"] = 0
-                        last_subject = tinfo["subject_id"]
-                        slot_used = True
-                        task_scheduled = True
-                        slot_idx += len(combined_slots)
-                        break
-                    else:
-                        continue
-
-                # 当前 slot 拼多个小任务
-                hours = min(required, remaining_hr)
-                if hours <= 0.01:
-                    continue
-
-                schedule.append({
-                    "date": slot["date"],
-                    "start": slot["start"],
-                    "end": slot["end"],
-                    "task_id": tid,
-                    "material_id": tinfo["material_id"],
-                    "task_type": ttype,
-                    "subject_id": tinfo["subject_id"],
-                    "topic_id": tinfo["topic_id"],
-                    "hours_assigned": hours
-                })
-                print(f"📌 安排任务：{tid}, {hours:.2f} 小时 @ {slot['date']} {slot['start']}")
-                tinfo["remaining_hours"] -= hours
-                if tinfo["remaining_hours"] <= 0.01:
-                    tinfo["assigned"] = True
-                subject_day_count[date_key][ttype] += 1
-                last_subject = tinfo["subject_id"]
-                remaining_hr -= hours
-                slot_used = True
-                task_scheduled = True
-                break
-
-            if not task_scheduled:
-                break
-
-        if not slot_used:
-            print(f"⚠️ 无法安排任务：{slot['date']} {slot['start']} → 空 slot")
-
-        slot_idx += 1
-
-    return schedule
-
-
-def compute_duration_minutes(slot):
-    start = datetime.strptime(slot["start"], "%H:%M")
-    end = datetime.strptime(slot["end"], "%H:%M")
-    delta = datetime.combine(datetime.today(), end.time()) - datetime.combine(
-        datetime.today(), start.time()
-    )
-    return delta.seconds // 60
-
-
-def generate_review_plan(start_date, end_date, db_path="review_plan.db"):
-    conn = sqlite3.connect(db_path)
-    conn.row_factory = sqlite3.Row
-
-    # Step 1: 获取所有可用 slot
-    available_slots = get_available_slots(start_date, end_date, db_path=db_path)
-
-    # Step 2: 构建 DAG
-    dag = build_task_dag(conn)
-
-    # Step 3: 任务池
-    task_pool = extract_task_pool(dag)
-
-    # Step 4: 调度
-    available_slots = get_available_slots(start_date, end_date, db_path)
-    schedule = generate_schedule_v3_ebbinghaus_full_fill(task_pool, available_slots, dag, conn, subject_progress_strategy=1)
-
-    conn.close()
-    return schedule
-
-
-def format_schedule_human_readable(schedule, db_path="review_plan.db"):
-    import sqlite3
-
-    conn = sqlite3.connect(db_path)
-    conn.row_factory = sqlite3.Row
-    cur = conn.cursor()
-
-    topic_map = {}
-    subject_map = {}
-    input_map = {}
-    output_map = {}
-
-    # 加载 TopicNode
-    cur.execute("SELECT topic_id, name, parent_id, subject_id FROM TopicNode")
-    for row in cur.fetchall():
-        topic_map[row["topic_id"]] = (row["name"], row["parent_id"], row["subject_id"])
-
-    # 加载 Subject
-    cur.execute("SELECT subject_id, subject_name FROM Subject")
-    for row in cur.fetchall():
-        subject_map[row["subject_id"]] = row["subject_name"]
-
-    # 加载 InputMaterial
-    cur.execute("SELECT input_id, title FROM InputMaterial")
-    for row in cur.fetchall():
-        input_map[row["input_id"]] = row["title"]
-
-    # 加载 OutputMaterial
-    cur.execute("SELECT output_id, title FROM OutputMaterial")
-    for row in cur.fetchall():
-        output_map[row["output_id"]] = row["title"]
-
-    conn.close()
-
-    def get_topic_hierarchy_and_subject(topic_id):
-        names = []
-        subject_id_found = None
-        while topic_id:
-            name, parent_id, subject_id = topic_map.get(topic_id, ("?", None, None))
-            names.insert(0, name)
-            if subject_id and not subject_id_found:
-                subject_id_found = subject_id
-            topic_id = parent_id
-        return names, subject_id_found
-
-    readable_schedule = []
-
-    for entry in schedule:
-        task_type = entry["task_type"]
-        topic_id = entry["topic_id"]
-        subject_id = entry["subject_id"]
-        material_id = entry["material_id"]
-
-        # topic 路径 & 回溯 subject
-        if topic_id:
-            topic_path, inferred_subject_id = get_topic_hierarchy_and_subject(topic_id)
-        else:
-            topic_path, inferred_subject_id = [], None
-
-        # subject 确定优先顺序：entry中有 → topic推导 → 没有则看是否是 exam
-        if subject_id:
-            subject_name = subject_map.get(subject_id, "未知科目")
-        elif inferred_subject_id:
-            subject_name = subject_map.get(inferred_subject_id, "未知科目")
-        elif not topic_id and entry.get("task_type") == "output":
-            subject_name = "总复习"
-        else:
-            subject_name = "未知科目"
-
-        # 避免重复 subject-topic 名称
-        if topic_path and topic_path[0] == subject_name:
-            topic_path = topic_path[1:]
-
-        # 构建任务名称
-        if task_type == "input":
-            title = input_map.get(material_id, "未知输入材料")
-            task_type = "👀📘 输入"
-            task_label = f"{subject_name}-{'-'.join(topic_path)}-笔记《{title}》"
-        elif task_type == "output":
-            title = output_map.get(material_id, "未知输出材料")
-            task_type = "✍️🧠 输出"
-            task_label = f"{subject_name}-{'-'.join(topic_path)}-练习《{title}》"
-        else:
-            task_label = f"{subject_name}-未知任务"
-
-        readable_schedule.append(
+        fmt.append(
             {
-                "date": entry["date"],
-                "start": entry["start"],
-                "end": entry["end"],
-                "task_type": task_type,
-                "task_name": task_label,
-                "hours_assigned": entry["hours_assigned"],
+                "date": row["date"],
+                "start": start_time,
+                "end": end_time,
+                "task_type": task_type_label,
+                "task_name": row["task_title"],
+                "hours_assigned": hrs * 60,
             }
         )
 
-    return readable_schedule
-
+    return fmt
 
 if __name__ == "__main__":
-    raw_schedule = generate_review_plan(
-        "2025-04-15", "2025-05-22", db_path="../review_plan.db"
-    )
-    human_readable = format_schedule_human_readable(
-        raw_schedule, db_path="../review_plan.db"
-    )
+    # 测试代码
+    from dag import DAG
 
-    for row in human_readable:
+    db_path = "/home/Matrix/review-planner/backend/review_plan.db"
+    dag = DAG(db_path)
+    start_date = "2025-04-15"
+    end_date = "2025-10-22"
+    time_slots = get_available_slots(start_date, end_date, db_path)
+    plan = schedule_review(dag, time_slots)
+    plan = to_frontend_format(plan)
+    for row in plan:
         print(row)

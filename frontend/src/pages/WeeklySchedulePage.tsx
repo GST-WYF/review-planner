@@ -91,7 +91,7 @@ export default function WeeklySchedulePage() {
                   >
                     {tasks.map((task, i) => (
                       <div key={i} className="mb-1">
-                        <span className="font-semibold text-green-800">{task.task_type === '👀📘 输入' ? '👀📘' : '✍️🧠'}</span>
+                        <span className="font-semibold text-green-800">{task.task_type}：</span>
                         {task.task_name}
                       </div>
                     ))}
@@ -123,7 +123,7 @@ export default function WeeklySchedulePage() {
                 <td className="border p-2">{task.start} - {task.end}</td>
                 <td className="border p-2">{task.task_name}</td>
                 <td className="border p-2">{task.task_type}</td>
-                <td className="border p-2">{task.hours_assigned}h</td>
+                <td className="border p-2">{task.hours_assigned} 分钟</td>
               </tr>
             ))}
           </tbody>

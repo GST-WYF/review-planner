@@ -6,9 +6,11 @@ from typing import Any, Dict, List, Optional
 from fastapi import Body, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from utils.dag import DAG
+from utils.time_slot import get_available_slots
 from utils.achievement_registry import load_achievement_registry
 from utils.level import calculate_level
-from utils.schedule import format_schedule_human_readable, generate_review_plan
+from utils.schedule import schedule_review, to_frontend_format
 from utils.user_context import build_user_context
 
 
@@ -763,10 +765,12 @@ def delete_special_schedule(schedule_id: int):
 def get_schedule():
     start_date = datetime.today().strftime("%Y-%m-%d")
     end_date = "2025-08-21"
-    db_path = os.path.abspath("review_plan.db")
+    # db_path = os.path.abspath("review_plan.db")
 
-    raw_schedule = generate_review_plan(start_date, end_date, db_path=db_path)
-    human_readable = format_schedule_human_readable(raw_schedule, db_path=db_path)
+    dag = DAG(DB_NAME)
+    time_slots = get_available_slots(start_date, end_date, DB_NAME)
+    raw_schedule = schedule_review(dag, time_slots)
+    human_readable = to_frontend_format(raw_schedule)
 
     return {"schedule": human_readable}
 

@@ -1,169 +1,273 @@
-def find_outputs_by_topic(dag, topic_id):
-    return [
-        tid
-        for tid, node in dag.items()
-        if node["task"]["type"] == "output" and node["task"]["topic_id"] == topic_id
-    ]
+import sqlite3
+from collections import defaultdict
+from typing import Dict, List, Optional, Union, Tuple
 
 
-def find_outputs_by_subject(dag, subject_id):
-    return [
-        tid
-        for tid, node in dag.items()
-        if node["task"]["type"] == "output" and node["task"]["subject_id"] == subject_id
-    ]
+class Material:
+    def __init__(self, material_id: int, title: str, type_: str, required_hours: float, reviewed_hours: float, is_completed: bool, owner_type: Optional[str] = None, owner_id: Optional[int] = None):
+        self.material_id = material_id
+        self.title = title
+        self.type = type_  # 'note', 'video', 'recite', 'exercise_set', 'mock_exam'
+        self.required_hours = required_hours
+        self.reviewed_hours = reviewed_hours
+        self.is_completed = is_completed
+        self.owner_type = owner_type
+        self.owner_id = owner_id
+
+    def __repr__(self):
+        status = "✅" if self.is_completed else "❌"
+        return f"Material(ID: {self.material_id}, Type: {self.type}, Title: '{self.title}', {status}, {self.reviewed_hours}/{self.required_hours} hrs)"
 
 
-def find_outputs_by_exam(dag, exam_id):
-    return [
-        tid
-        for tid, node in dag.items()
-        if node["task"]["type"] == "output" and node["task"]["exam_id"] == exam_id
-    ]
+class DAGNode:
+    def __init__(self, node_id: int, name: str, node_type: str, priority: int = 5):
+        self.node_id = node_id
+        self.name = name
+        self.node_type = node_type  # 'exam', 'subject', 'topic'
+        self.priority = priority
+        self.children: List['DAGNode'] = []
+        self.inputs: List[Material] = []
+        self.outputs: List[Material] = []
+        self.unfinished_children_count = 0
+        self.unfinished_inputs_count = 0
+        self.unfinished_outputs_count = 0
+        self.parent: Optional['DAGNode'] = None
+
+    def add_child(self, child: 'DAGNode'):
+        self.children.append(child)
+        child.parent = self
+
+    def add_input(self, material: Material):
+        self.inputs.append(material)
+        if not material.is_completed:
+            self.unfinished_inputs_count += 1
+
+    def add_output(self, material: Material):
+        self.outputs.append(material)
+        if not material.is_completed:
+            self.unfinished_outputs_count += 1
+
+    @property
+    def is_completed(self) -> bool:
+        return (
+            self.unfinished_children_count == 0 and
+            self.unfinished_inputs_count == 0 and
+            self.unfinished_outputs_count == 0
+        )
+
+    def __repr__(self):
+        return f"DAGNode({self.node_type}:{self.node_id}, '{self.name}', priority={self.priority})"
 
 
-def build_task_dag(conn):
-    dag = {}
-    id_map = {}
+class DAG:
+    def __init__(self, db_path: str):
+        self.db_path = db_path
+        self.exam_nodes: Dict[int, DAGNode] = {}
+        self.subject_nodes: Dict[int, DAGNode] = {}
+        self.topic_nodes: Dict[int, DAGNode] = {}
+        self.last_exam_id: Optional[int] = None
+        self.last_subject_id: Optional[int] = None
+        self._load_from_db()
+        self._update_unfinished_children_count()
 
-    cursor = conn.cursor()
+    def _load_from_db(self):
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
 
-    ### Step 1: 加载 InputMaterial
-    cursor.execute("SELECT * FROM InputMaterial")
-    for row in cursor.fetchall():
-        task_id = f"input_{row['input_id']}"
-        dag[task_id] = {
-            "task": {
-                "task_id": task_id,
-                "type": "input",
-                "material_id": row["input_id"],
-                "topic_id": row["topic_id"],
-                "required_hours": row["required_hours"],
-                "reviewed_hours": row["reviewed_hours"],
-                "is_completed": bool(row["is_completed"]),
-                "subject_id": None,
-                "exam_id": None,
-                "is_leaf": True,
-            },
-            "deps": set(),
-        }
+            cursor.execute("SELECT exam_id, exam_name, priority FROM Exam")
+            for exam_id, exam_name, priority in cursor.fetchall():
+                self.exam_nodes[exam_id] = DAGNode(exam_id, exam_name, 'exam', priority)
 
-    ### Step 2: 加载 OutputMaterial
-    cursor.execute("SELECT * FROM OutputMaterial")
-    for row in cursor.fetchall():
-        task_id = f"output_{row['output_id']}"
-        dag[task_id] = {
-            "task": {
-                "task_id": task_id,
-                "type": "output",
-                "material_id": row["output_id"],
-                "required_hours": row["required_hours"],
-                "reviewed_hours": row["reviewed_hours"],
-                "is_completed": bool(row["is_completed"]),
-                "subject_id": None,
-                "exam_id": None,
-                "topic_id": None,
-                "is_leaf": False,
-            },
-            "deps": set(),
-        }
+            cursor.execute("SELECT subject_id, exam_id, subject_name, priority FROM Subject")
+            for subject_id, exam_id, subject_name, priority in cursor.fetchall():
+                subject_node = DAGNode(subject_id, subject_name, 'subject', priority)
+                self.subject_nodes[subject_id] = subject_node
+                if exam_id in self.exam_nodes:
+                    self.exam_nodes[exam_id].add_child(subject_node)
 
-    ### Step 3: 补充 output 的 owner 类型（绑定 topic/subject/exam）
-    for task_id, node in dag.items():
-        task = node["task"]
-        if task["type"] == "output":
-            cursor.execute(
-                "SELECT owner_type, owner_id FROM OutputMaterial WHERE output_id = ?",
-                (task["material_id"],),
-            )
-            owner_type, owner_id = cursor.fetchone()
-            if owner_type == "topic":
-                task["topic_id"] = owner_id
-            elif owner_type == "subject":
-                task["subject_id"] = owner_id
-            elif owner_type == "exam":
-                task["exam_id"] = owner_id
+            cursor.execute("SELECT topic_id, subject_id, parent_id, name, importance FROM TopicNode")
+            temp_topics = {}
+            for topic_id, subject_id, parent_id, name, importance in cursor.fetchall():
+                topic_node = DAGNode(topic_id, name, 'topic', importance)
+                temp_topics[topic_id] = (topic_node, subject_id, parent_id)
+                self.topic_nodes[topic_id] = topic_node
 
-    ### Step 4: 建立依赖关系
+            for topic_id, (node, subject_id, parent_id) in temp_topics.items():
+                if parent_id:
+                    parent_node = self.topic_nodes.get(parent_id)
+                    if parent_node:
+                        parent_node.add_child(node)
+                else:
+                    subject_node = self.subject_nodes.get(subject_id)
+                    if subject_node:
+                        subject_node.add_child(node)
 
-    # 4.1 input ➜ topic output
-    for task_id, node in dag.items():
-        task = node["task"]
-        if task["type"] == "output" and task["topic_id"]:
-            topic_id = task["topic_id"]
-            for other_id, other_node in dag.items():
-                other_task = other_node["task"]
-                if other_task["type"] == "input" and other_task["topic_id"] == topic_id:
-                    node["deps"].add(other_task["task_id"])
+            cursor.execute("SELECT input_id, topic_id, type, title, required_hours, reviewed_hours, is_completed FROM InputMaterial")
+            for input_id, topic_id, type_, title, req_hrs, rev_hrs, is_completed in cursor.fetchall():
+                node = self.topic_nodes.get(topic_id)
+                if node:
+                    material = Material(input_id, title, type_, req_hrs, rev_hrs, bool(is_completed), 'topic', topic_id)
+                    node.add_input(material)
 
-    # 4.2 子 topic output ➜ 父 topic output
-    cursor.execute(
-        "SELECT topic_id, parent_id FROM TopicNode WHERE parent_id IS NOT NULL"
-    )
-    for topic_id, parent_id in cursor.fetchall():
-        child_outputs = find_outputs_by_topic(dag, topic_id)
-        parent_outputs = find_outputs_by_topic(dag, parent_id)
-        for parent_output in parent_outputs:
-            for child_output in child_outputs:
-                dag[parent_output]["deps"].add(child_output)
+            cursor.execute("SELECT output_id, owner_type, owner_id, type, title, required_hours, reviewed_hours, is_completed FROM OutputMaterial")
+            for output_id, owner_type, owner_id, type_, title, req_hrs, rev_hrs, is_completed in cursor.fetchall():
+                material = Material(output_id, title, type_, req_hrs, rev_hrs, bool(is_completed), owner_type, owner_id)
+                if owner_type == 'exam':
+                    node = self.exam_nodes.get(owner_id)
+                elif owner_type == 'subject':
+                    node = self.subject_nodes.get(owner_id)
+                else:
+                    node = self.topic_nodes.get(owner_id)
+                if node:
+                    node.add_output(material)
 
-    # 4.3 topic output ➜ subject output
-    cursor.execute("SELECT topic_id, subject_id FROM TopicNode")
-    for topic_id, subject_id in cursor.fetchall():
-        topic_outputs = find_outputs_by_topic(dag, topic_id)
-        subject_outputs = find_outputs_by_subject(dag, subject_id)
-        for subject_output in subject_outputs:
-            for topic_output in topic_outputs:
-                dag[subject_output]["deps"].add(topic_output)
+    def _update_unfinished_children_count(self):
+        def update_node(node: DAGNode):
+            count = 0
+            for child in node.children:
+                update_node(child)
+                if not child.is_completed:
+                    count += 1
+            node.unfinished_children_count = count
 
-    # 4.4 subject output ➜ exam output
-    cursor.execute("SELECT subject_id, exam_id FROM Subject")
-    for subject_id, exam_id in cursor.fetchall():
-        subject_outputs = find_outputs_by_subject(dag, subject_id)
-        exam_outputs = find_outputs_by_exam(dag, exam_id)
-        for exam_output in exam_outputs:
-            for subject_output in subject_outputs:
-                dag[exam_output]["deps"].add(subject_output)
+        for exam_node in self.exam_nodes.values():
+            update_node(exam_node)
 
-    # print("✅ DAG 构建完成。统计任务数量：")
-    # print("所有任务数：", len(dag))
-    # print(
-    #     "output 任务数：", sum(1 for t in dag.values() if t["task"]["type"] == "output")
-    # )
-    # print(
-    #     "ready 状态 output 任务数：",
-    #     sum(1 for t in dag.values() if t["task"]["type"] == "output" and not t["deps"]),
-    # )
+    def update_task(self, material: Material, study_hours: float):
+        if material.is_completed:
+            return
+        material.reviewed_hours += study_hours
+        if material.reviewed_hours >= material.required_hours:
+            material.reviewed_hours = material.required_hours
+            material.is_completed = True
+            if material.owner_type == 'exam':
+                node = self.exam_nodes.get(material.owner_id)
+            elif material.owner_type == 'subject':
+                node = self.subject_nodes.get(material.owner_id)
+            else:
+                node = self.topic_nodes.get(material.owner_id)
+            if node:
+                if material in node.inputs:
+                    node.unfinished_inputs_count -= 1
+                if material in node.outputs:
+                    node.unfinished_outputs_count -= 1
+                self._propagate_completion(node)
 
-    return dag
+    def _propagate_completion(self, node: DAGNode):
+        while node:
+            node.unfinished_children_count = sum(1 for child in node.children if not child.is_completed)
+            node = node.parent
+
+    def select_next_exam(self) -> Optional[DAGNode]:
+        candidates = [e for e in self.exam_nodes.values() if not e.is_completed and e.priority > 0]
+        if not candidates:
+            return None
+        max_priority = max(e.priority for e in candidates)
+        candidates = [e for e in candidates if e.priority == max_priority]
+        candidates.sort(key=lambda x: x.node_id)
+        ids = [e.node_id for e in candidates]
+        if self.last_exam_id and self.last_exam_id in ids:
+            idx = ids.index(self.last_exam_id)
+            next_exam = candidates[(idx + 1) % len(candidates)]
+        else:
+            next_exam = candidates[0]
+        self.last_exam_id = next_exam.node_id
+        return next_exam
+
+    def select_next_subject(self, exam_node: DAGNode) -> Optional[DAGNode]:
+        candidates = [s for s in exam_node.children if not s.is_completed and s.priority > 0]
+        if not candidates:
+            return None
+        max_priority = max(s.priority for s in candidates)
+        candidates = [s for s in candidates if s.priority == max_priority]
+        candidates.sort(key=lambda x: x.node_id)
+        ids = [s.node_id for s in candidates]
+        if self.last_subject_id and self.last_subject_id in ids:
+            idx = ids.index(self.last_subject_id)
+            next_subject = candidates[(idx + 1) % len(candidates)]
+        else:
+            next_subject = candidates[0]
+        self.last_subject_id = next_subject.node_id
+        return next_subject
+
+    def get_next_task(self, exam_node: DAGNode, subject_node: Optional[DAGNode], types: Tuple[str], max_hours: float) -> Optional[Material]:
+        def dfs(node: DAGNode) -> Optional[Material]:
+            for material in node.inputs:
+                if not material.is_completed and material.type in types:
+                    if material.type == 'mock_exam' and material.required_hours > max_hours:
+                        continue
+                    return material
+            sorted_children = sorted(node.children, key=lambda n: (-n.priority, n.node_id))
+            for child in sorted_children:
+                result = dfs(child)
+                if result:
+                    return result
+            if node.unfinished_children_count == 0 and node.unfinished_inputs_count == 0:
+                for material in node.outputs:
+                    if not material.is_completed and material.type in types:
+                        if material.type == 'mock_exam' and material.required_hours > max_hours:
+                            continue
+                        return material
+            return None
+
+        if subject_node:
+            result = dfs(subject_node)
+            if result:
+                return result
+
+        if exam_node.unfinished_children_count == 0 and exam_node.unfinished_inputs_count == 0:
+            for material in exam_node.outputs:
+                if not material.is_completed and material.type in types:
+                    if material.type == 'mock_exam' and material.required_hours > max_hours:
+                        continue
+                    return material
+        # print("没有找到符合条件的任务！")
+        return None
+
+    def print_dag(self):
+        for exam_node in self.exam_nodes.values():
+            self._print_node(exam_node, indent=0)
+
+    def _print_node(self, node: DAGNode, indent: int):
+        prefix = "  " * indent
+        status = "✅" if node.is_completed else "❌"
+        print(f"{prefix}- {node.name} ({node.node_type}, ID: {node.node_id}, Priority: {node.priority}) {status}")
+        if node.unfinished_children_count > 0:
+            print(f"{prefix}  Unfinished children: {node.unfinished_children_count}")
+        if node.unfinished_inputs_count > 0:
+            print(f"{prefix}  Unfinished inputs: {node.unfinished_inputs_count}")
+        if node.unfinished_outputs_count > 0:
+            print(f"{prefix}  Unfinished outputs: {node.unfinished_outputs_count}")
+        for child in node.children:
+            self._print_node(child, indent + 1)
+
 
 if __name__ == "__main__":
-    import sqlite3
-    from datetime import datetime, timedelta
-    from collections import defaultdict
+    dag = DAG("/home/Matrix/review-planner/backend/review_plan.db")
+    dag.print_dag()
 
-    # 连接到 SQLite 数据库
-    db_path = "../review_plan.db"
-    conn = sqlite3.connect(db_path)
-    conn.row_factory = sqlite3.Row
+    print("\n🔄 更新任务状态示例:")
+    # next_exam = dag.select_next_exam()
+    next_exam = dag.exam_nodes[2]
+    next_subject = dag.select_next_subject(next_exam)
+    # next_subject = dag.select_next_subject(next_exam)
+    if next_exam:
+        task = dag.get_next_task(next_exam, next_subject, types=("note", "video", "mock_exam"), max_hours=2.0)
+        if task:
+            print(f"\n➡️ 学习材料: {task}")
+            dag.update_task(task, 2.0)
 
-    # 构建 DAG
-    dag = build_task_dag(conn)
-    for task_id, node in dag.items():
-        print(f"{task_id}: {node['task']}")
-        # 输出任务信息
-        print(f"任务 ID: {task_id}")
-        print(f"任务类型: {node['task']['type']}")
-        print(f"材料 ID: {node['task']['material_id']}")
-        print(f"所需时间: {node['task']['required_hours']} 小时")
-        print(f"已复习时间: {node['task']['reviewed_hours']} 小时")
-        print(f"是否完成: {node['task']['is_completed']}")
-        print(f"科目 ID: {node['task']['subject_id']}")
-        print(f"考试 ID: {node['task']['exam_id']}")
-        print(f"知识点 ID: {node['task']['topic_id']}")
-        print(f"是否叶子节点: {node['task']['is_leaf']}")
-        print(f"依赖任务: {node['deps']}")
-        print("-" * 40)
+    dag.print_dag()
 
-    # 关闭数据库连接
-    conn.close()
+    print("\n📘 下一个考试:")
+    print(next_exam)
+
+    print("\n📗 下一个科目:")
+    print(next_subject)
+
+    print("\n🧠 获取下一个任务:")
+    # if next_exam and next_subject:
+    task = dag.get_next_task(next_exam, next_subject, types=('note', 'video', 'recite', 'exercise_set', 'mock_exam'), max_hours=0.5)
+    print(task)
+    task = dag.get_next_task(dag.exam_nodes[2], dag.subject_nodes[12], types=("note", "video", "mock_exam"), max_hours=0.5)
+    print(task)
