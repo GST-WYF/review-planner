@@ -1,4 +1,3 @@
-import os
 import sqlite3
 from datetime import date, datetime, timedelta
 from typing import Any, Dict, List, Optional
@@ -6,12 +5,22 @@ from typing import Any, Dict, List, Optional
 from fastapi import Body, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from utils.dag import DAG
-from utils.time_slot import get_available_slots
 from utils.achievement_registry import load_achievement_registry
+from utils.dag import DAG
 from utils.level import calculate_level
 from utils.schedule import schedule_review, to_frontend_format
+from utils.time_slot import get_available_slots
 from utils.user_context import build_user_context
+
+
+class ExamCreate(BaseModel):
+    exam_name: str
+    priority: int = 5  # 0-9
+
+
+class ExamUpdate(BaseModel):
+    exam_name: Optional[str] = None
+    priority: Optional[int] = None
 
 
 class TopicCreate(BaseModel):
@@ -20,7 +29,7 @@ class TopicCreate(BaseModel):
     name: str
     is_leaf: bool
     accuracy: Optional[float] = None
-    importance: Optional[float] = None
+    importance: Optional[int] = None  # 0-9
 
 
 class TopicUpdate(BaseModel):
@@ -42,6 +51,12 @@ class MaterialInput(BaseModel):
 class SubjectCreate(BaseModel):
     exam_id: int
     subject_name: str
+    priority: int = 5  # 0-9
+
+
+class SubjectUpdate(BaseModel):
+    subject_name: Optional[str] = None
+    priority: Optional[int] = None
 
 
 class ReviewTaskCreate(BaseModel):
@@ -153,13 +168,87 @@ def fetch_tree(subject_id: int) -> List[Dict[str, Any]]:
         return top_nodes
 
 
+@app.post("/api/exam/")
+def create_exam(data: ExamCreate):
+    if not 0 <= data.priority <= 9:
+        raise HTTPException(400, "priority must be 0-9")
+    with sqlite3.connect(DB_NAME) as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO Exam (exam_name, priority) VALUES (?, ?)",
+            (data.exam_name, data.priority),
+        )
+        conn.commit()
+    return {"status": "created", "exam_id": cur.lastrowid}
+
+
+@app.put("/api/exam/{exam_id}")
+def update_exam(exam_id: int, data: ExamUpdate):
+    fields, vals = [], []
+    for f in ("exam_name", "priority"):
+        v = getattr(data, f)
+        if v is not None:
+            if f == "priority" and not 0 <= v <= 9:
+                raise HTTPException(400, "priority must be 0-9")
+            fields.append(f"{f} = ?")
+            vals.append(v)
+    if fields:
+        with sqlite3.connect(DB_NAME) as conn:
+            conn.execute(
+                f"UPDATE Exam SET {', '.join(fields)} WHERE exam_id = ?",
+                (*vals, exam_id),
+            )
+            conn.commit()
+    return {"status": "updated"}
+
+
+@app.get("/api/exam/{exam_id}")
+def get_exam(exam_id: int):
+    with sqlite3.connect(DB_NAME) as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT exam_id, exam_name, priority FROM Exam WHERE exam_id = ?",
+            (exam_id,),
+        )
+        row = cursor.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Exam not found")
+        return {
+            "exam_id": row[0],
+            "exam_name": row[1],
+            "priority": row[2],
+        }
+
+
+@app.put("/api/subject/{subject_id}")
+def update_subject(subject_id: int, data: SubjectUpdate):
+    fields, vals = [], []
+    for f in ("subject_name", "priority"):
+        v = getattr(data, f)
+        if v is not None:
+            if f == "priority" and not 0 <= v <= 9:
+                raise HTTPException(400, "priority must be 0-9")
+            fields.append(f"{f} = ?")
+            vals.append(v)
+    if fields:
+        with sqlite3.connect(DB_NAME) as conn:
+            conn.execute(
+                f"UPDATE Subject SET {', '.join(fields)} WHERE subject_id = ?",
+                (*vals, subject_id),
+            )
+            conn.commit()
+    return {"status": "updated"}
+
+
 @app.post("/api/subject/")
 def create_subject(data: SubjectCreate):
     with sqlite3.connect(DB_NAME) as conn:
         cursor = conn.cursor()
+        if not 0 <= data.priority <= 9:
+            raise HTTPException(400, "priority must be 0-9")
         cursor.execute(
-            "INSERT INTO Subject (exam_id, subject_name) VALUES (?, ?)",
-            (data.exam_id, data.subject_name),
+            "INSERT INTO Subject (exam_id, subject_name, priority) VALUES (?, ?, ?)",
+            (data.exam_id, data.subject_name, data.priority),
         )
         conn.commit()
         subject_id = cursor.lastrowid
@@ -172,7 +261,8 @@ def get_review_tree():
         cursor = conn.cursor()
         cursor.execute(
             """
-            SELECT s.subject_id, s.subject_name, s.exam_id, e.exam_name
+            SELECT s.subject_id, s.subject_name, s.priority,
+            s.exam_id, e.exam_name, e.priority
             FROM Subject s
             JOIN Exam e ON s.exam_id = e.exam_id
         """
@@ -181,14 +271,17 @@ def get_review_tree():
 
     result = []
     for subject in subjects:
-        subject_id, subject_name, exam_id, exam_name = subject
+        # subject_id, subject_name, exam_id, exam_name = subject
+        subject_id, subject_name, subj_pri, exam_id, exam_name, exam_pri = subject
         topics = fetch_tree(subject_id)
         result.append(
             {
                 "subject_id": subject_id,
                 "subject_name": subject_name,
+                "priority": subj_pri,
                 "exam_id": exam_id,
                 "exam_name": exam_name,
+                "exam_priority": exam_pri,
                 "topics": topics,
             }
         )
@@ -245,8 +338,7 @@ def get_topic_materials(topic_id: int):
 # 创建新的 Topic
 @app.post("/api/topic/")
 def create_topic(data: TopicCreate):
-    from fastapi import Request
-
+    print(f"Creating topic: {data}")
     with sqlite3.connect(DB_NAME) as conn:
         cursor = conn.cursor()
         cursor.execute(
@@ -288,14 +380,20 @@ def update_topic(topic_id: int, data: TopicUpdate):
         for field in ["name", "is_leaf", "accuracy", "importance"]:
             value = getattr(data, field)
             if value is not None:
+                if field == "importance" and not 0 <= value <= 9:
+                    raise HTTPException(
+                        status_code=400, detail="importance must be 0-9"
+                    )
                 fields.append(f"{field} = ?")
                 values.append(value)
 
-        if fields:
-            sql = f"UPDATE TopicNode SET {', '.join(fields)} WHERE topic_id = ?"
-            values.append(topic_id)
-            cursor.execute(sql, tuple(values))
-            conn.commit()
+        if not fields:
+            raise HTTPException(status_code=400, detail="No fields to update")
+
+        sql = f"UPDATE TopicNode SET {', '.join(fields)} WHERE topic_id = ?"
+        values.append(topic_id)
+        cursor.execute(sql, tuple(values))
+        conn.commit()
 
     return {"status": "updated", "topic_id": topic_id}
 

@@ -24,13 +24,13 @@ export default function TopicTree({
   toggleExpand,
   onDelete,
   reload,
-  subject_id
+  subject_id,
 }: Props) {
   const [showMaterials, setShowMaterials] = useState(false);
   const [editing, setEditing] = useState(false);
   const [addingChild, setAddingChild] = useState(false);
 
-  const margin = { marginLeft: `${level * 20}px` };
+  const margin = { marginLeft: `${level * 20}px` } as const;
 
   const handleDelete = async () => {
     if (confirm('确认删除该知识点？')) {
@@ -48,7 +48,9 @@ export default function TopicTree({
           className="text-blue-500"
         >
           {topic.children.length > 0
-            ? expanded[topic.topic_id] ? '▼' : '▶'
+            ? expanded[topic.topic_id]
+              ? '▼'
+              : '▶'
             : '•'}
         </button>
 
@@ -62,14 +64,17 @@ export default function TopicTree({
             />
           ) : (
             <>
-              <div className="font-semibold">{topic.name}</div>
-              {/* <div className="text-sm text-gray-700">
-                {topic.accuracy !== null && <>准确率: {topic.accuracy} </>}
-                {topic.is_leaf && topic.importance !== null && (
-                  <>| 重要性: {topic.importance}</>
+              <div className="font-semibold leading-tight flex items-center gap-1 flex-wrap">
+                {topic.name}
+                {topic.accuracy !== null && (
+                  <span className="text-xs text-gray-600 font-normal">准确率: {topic.accuracy}</span>
                 )}
-              </div> */}
-              <div className="text-sm space-x-2">
+                {topic.importance !== null && (
+                  <span className="text-xs text-gray-600 font-normal">| 重要性: {topic.importance}</span>
+                )}
+              </div>
+
+              <div className="text-sm space-x-2 mt-0.5">
                 <button
                   className="text-blue-600"
                   onClick={() => setEditing(true)}
@@ -80,12 +85,9 @@ export default function TopicTree({
                   onClick={() => setShowMaterials(!showMaterials)}
                   className="text-indigo-600"
                 >
-                  {showMaterials ? '收起' : '查看'}
+                  {showMaterials ? '收起' : '材料'}
                 </button>
-                <button
-                  onClick={handleDelete}
-                  className="text-red-600"
-                >
+                <button onClick={handleDelete} className="text-red-600">
                   🗑
                 </button>
                 <button
@@ -101,10 +103,7 @@ export default function TopicTree({
           {showMaterials && (
             <div className="text-sm mt-2 space-y-4">
               <InputMaterialManager topic_id={topic.topic_id} />
-              <OutputMaterialManager
-                owner_type="topic"
-                owner_id={topic.topic_id}
-              />
+              <OutputMaterialManager owner_type="topic" owner_id={topic.topic_id} />
             </div>
           )}
 
@@ -121,18 +120,19 @@ export default function TopicTree({
         </div>
       </div>
 
-      {expanded[topic.topic_id] && topic.children.map(child => (
-        <TopicTree
-          key={child.topic_id}
-          topic={child}
-          level={level + 1}
-          expanded={expanded}
-          toggleExpand={toggleExpand}
-          onDelete={onDelete}
-          reload={reload}
-          subject_id={subject_id}
-        />
-      ))}
+      {expanded[topic.topic_id] &&
+        topic.children.map((child) => (
+          <TopicTree
+            key={child.topic_id}
+            topic={child}
+            level={level + 1}
+            expanded={expanded}
+            toggleExpand={toggleExpand}
+            onDelete={onDelete}
+            reload={reload}
+            subject_id={subject_id}
+          />
+        ))}
     </div>
   );
 }

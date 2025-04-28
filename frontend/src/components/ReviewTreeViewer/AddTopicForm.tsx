@@ -10,10 +10,15 @@ type Props = {
 export default function AddTopicForm({ subject_id, parent_id, onAdded }: Props) {
   const [name, setName] = useState('');
   const [isLeaf, setIsLeaf] = useState('true');
+  const [importance, setImportance] = useState<number>(5); // ➡️ 新增重要性字段，默认5
 
   const handleSubmit = async () => {
     if (!name) {
       alert('请填写名称');
+      return;
+    }
+    if (importance < 0 || importance > 9) {
+      alert('重要性必须在0~9之间');
       return;
     }
 
@@ -23,7 +28,7 @@ export default function AddTopicForm({ subject_id, parent_id, onAdded }: Props) 
       name,
       is_leaf: isLeaf === 'true',
       accuracy: null,
-      importance: null,
+      importance,
     });
 
     onAdded();
@@ -49,6 +54,17 @@ export default function AddTopicForm({ subject_id, parent_id, onAdded }: Props) 
           <option value="true">是</option>
           <option value="false">否</option>
         </select>
+      </div>
+      <div>
+        <label className="text-gray-600">重要性（0~9）⭐</label>
+        <input
+          type="number"
+          min={0}
+          max={9}
+          className="border p-1 w-full"
+          value={importance}
+          onChange={e => setImportance(Number(e.target.value))}
+        />
       </div>
       <button
         onClick={handleSubmit}
