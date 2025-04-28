@@ -123,45 +123,6 @@ def schedule_review(dag: "DAG", time_slots: List[Dict[str, str]]) -> List[Dict[s
 
     return plan
 
-# def to_frontend_format(plan: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-#     """
-#     将 schedule_review 生成的 plan（包含 slot_type / task_title）转换为前端友好结构。
-
-#     返回列表中每条记录形如:
-#         {
-#             "date": "2025-08-01",
-#             "start": "2025-08-01T12:30:00",
-#             "end":   "2025-08-01T14:00:00",
-#             "task_type": "output",         # passive | active | output
-#             "task_name": "高数期末题库（上）",
-#             "hours_assigned": 1.5          # float, 保留两位小数
-#         }
-#     """
-#     fmt: List[Dict[str, Any]] = []
-
-#     for row in plan:
-#         start_iso = f"{row['date']}T{row['start']}:00"
-#         end_iso   = f"{row['date']}T{row['end']}:00"
-
-#         hrs = round(
-#             (datetime.fromisoformat(end_iso) - datetime.fromisoformat(start_iso))
-#             .total_seconds() / 3600.0,
-#             2,
-#         )
-
-#         fmt.append(
-#             {
-#                 "date": row["date"],
-#                 "start": start_iso,
-#                 "end": end_iso,
-#                 "task_type": row["slot_type"],
-#                 "task_name": row["task_title"],
-#                 "hours_assigned": hrs,
-#             }
-#         )
-
-#     return fmt
-
 def to_frontend_format(plan: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
     将 schedule_review 生成的 plan（包含 slot_type / task_title）转换为前端友好结构。
