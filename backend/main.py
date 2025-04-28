@@ -862,11 +862,11 @@ def delete_special_schedule(schedule_id: int):
 @app.get("/api/schedule")
 def get_schedule():
     start_date = datetime.today().strftime("%Y-%m-%d")
+    now_time = datetime.now().strftime("%H:%M")
     end_date = "2025-08-21"
-    # db_path = os.path.abspath("review_plan.db")
 
     dag = DAG(DB_NAME)
-    time_slots = get_available_slots(start_date, end_date, DB_NAME)
+    time_slots = get_available_slots(start_date, end_date, DB_NAME, start_time=now_time)
     raw_schedule = schedule_review(dag, time_slots)
     human_readable = to_frontend_format(raw_schedule)
 
