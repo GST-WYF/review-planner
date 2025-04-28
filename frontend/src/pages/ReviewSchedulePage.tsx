@@ -21,7 +21,7 @@ export default function ReviewSchedulePage() {
   const [specialSchedule, setSpecialSchedule] = useState<SpecialBlock[]>([]);
   const days = ["一", "二", "三", "四", "五", "六", "日"];
 
-  const timeSlots: string[] = Array.from({ length: 33 }, (_, i) => {
+  const timeSlots: string[] = Array.from({ length: 35 }, (_, i) => {
     const hour = 6 + Math.floor(i / 2);
     const minute = i % 2 === 0 ? "00" : "30";
     return `${String(hour).padStart(2, "0")}:${minute}`;
