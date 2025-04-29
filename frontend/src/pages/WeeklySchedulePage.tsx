@@ -55,8 +55,9 @@ export default function WeeklySchedulePage() {
   const next7Dates = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(today);
     d.setDate(d.getDate() + i);
-    return d.toISOString().split("T")[0];
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   });
+  
 
   // 显示用星期标题
   const todayIndex = today.getDay();
