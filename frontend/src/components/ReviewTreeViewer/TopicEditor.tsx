@@ -27,7 +27,7 @@ export default function TopicEditor({ topic, onClose, onSaved }: Props) {
     await api.updateTopic(topic.topic_id, {
       name: form.name,
       accuracy: form.accuracy !== '' ? Number(form.accuracy) : null,
-      importance: form.importance !== '' ? parseInt(String(form.importance), 5) : null,
+      importance: form.importance !== '' ? parseInt(String(form.importance), 10) : null,
     });
     onSaved();
     onClose();
