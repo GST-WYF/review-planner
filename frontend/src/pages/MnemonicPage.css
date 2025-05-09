@@ -1,0 +1,187 @@
+/* style.css */
+body {
+    font-family: 'Arial', sans-serif;
+    line-height: 1.6;
+    margin: 20px;
+    background-color: #f4f4f4;
+    color: #333;
+}
+
+.container {
+    max-width: 800px;
+    margin: auto;
+    background: #fff;
+    padding: 30px; /* Increased padding for better spacing */
+    border-radius: 12px; /* More rounded corners for the main container */
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1); /* Softer shadow */
+}
+
+h1, h2, h3 {
+    color: #0056b3;
+    margin-bottom: 15px; /* Added margin below headings */
+}
+
+h1 {
+    text-align: center;
+    color: #004085; /* Slightly darker blue for main heading */
+}
+
+.disease-entry {
+    margin-bottom: 40px; /* Increased space between disease entries */
+    padding-bottom: 30px; /* Increased padding at the bottom */
+    border-bottom: 1px dashed #ccc; /* Changed to dashed border */
+}
+
+.disease-entry:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.patterns, .mnemonic {
+    margin-top: 20px; /* Increased space above patterns and mnemonic */
+}
+
+/* Style for the input control */
+.controls {
+    margin-bottom: 30px; /* Increased margin */
+    padding: 15px; /* Increased padding */
+    background-color: #e9e9e9;
+    border-radius: 8px; /* Rounded corners */
+    display: flex;
+    align-items: center;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1); /* Inner shadow */
+}
+
+.controls label {
+    margin-right: 15px; /* Increased margin */
+    font-weight: bold;
+    color: #555;
+}
+
+.controls input[type="number"] {
+    padding: 8px; /* Increased padding */
+    border: 1px solid #ccc;
+    border-radius: 5px; /* Rounded corners */
+    width: 70px; /* Slightly wider input */
+    text-align: center;
+}
+
+.controls input[type="number"]::-webkit-outer-spin-button,
+.controls input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none; /* Remove default arrow in Chrome, Safari */
+    margin: 0;
+}
+
+
+/* CSS Grid for Patterns - Adjusted for rounded items */
+.pattern-grid {
+    display: grid;
+    /* Adjust column widths - proportionally */
+    grid-template-columns: 1fr 1.5fr 2fr;
+    gap: 10px; /* Add gap between grid items */
+    padding: 10px; /* Padding around the grid */
+    background-color: #fcfcfc; /* Slightly different background for the grid area */
+    border-radius: 8px; /* Rounded corners for the grid container */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05); /* Subtle shadow for the grid area */
+}
+
+/* Grid Category Header - Styled as a rounded block */
+.grid-category {
+    grid-column: 1 / -1; /* Span all columns */
+    font-weight: bold;
+    padding: 12px 15px; /* Padding inside */
+    background-color: #e0f7fa; /* Light blue background */
+    border-radius: 8px; /* Rounded corners */
+    margin-bottom: 5px; /* Small margin below category */
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); /* Subtle shadow */
+    /* opacity and transition are now on the inner span */
+}
+
+/* Individual Grid Items - Styled as rounded blocks */
+.grid-item {
+    /* grid items are always visible containers for the text */
+    padding: 12px 15px; /* Padding inside */
+    word-break: break-word;
+    background-color: #ffffff; /* White background */
+    border-radius: 8px; /* Rounded corners */
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); /* Subtle shadow */
+    /* opacity and transition are now on the inner span */
+    /* Remove borders, replaced by gap and background/shadow */
+    border: none;
+}
+
+/* Remove right border styles as items are now separated by gap and styling */
+.pattern-grid .grid-item.pattern-name {
+     border-right: none;
+     padding-right: 15px; /* Keep padding */
+}
+
+.pattern-grid .grid-item.treatment-name {
+    border-right: none;
+    padding-right: 15px; /* Keep padding */
+}
+
+.pattern-grid .grid-item.formula-name {
+     border-right: none; /* Ensure no border */
+     padding-right: 15px; /* Keep consistent padding */
+}
+
+/* Styles for the content *inside* the grid items and categories */
+.reveal-text {
+    opacity: 0; /* Content is initially hidden */
+    transition: opacity 0.5s ease-in-out; /* Transition applies to content */
+    display: block; /* Span needs to be block or inline-block to fill grid item cell */
+    width: 100%; /* Ensure span takes full width of its parent grid item */
+    /* Add a subtle text shadow for better visibility if needed, optional */
+    /* text-shadow: 0 0 2px rgba(0, 0, 0, 0.2); */
+}
+
+/* Optional: Style for revealed text */
+.reveal-text.visible {
+    opacity: 1;
+}
+
+/* Adjust specific styles for names if needed, applied to the inner span */
+/* We apply styles to the inner span as it's the element that changes opacity */
+.pattern-grid .pattern-name span.reveal-text {
+    font-weight: bold;
+    color: #333; /* Darker color */
+}
+
+.pattern-grid .treatment-name span.reveal-text {
+     color: #0056b3; /* Primary blue color */
+     font-weight: normal;
+}
+
+.pattern-grid .formula-name span.reveal-text {
+     font-style: italic;
+     color: #1e7e34; /* Darker green */
+     font-weight: normal;
+}
+
+/* Style for the reveal-text inside the category header */
+.grid-category span.reveal-text {
+    font-weight: bold; /* Keep bold style from grid-category */
+    color: #004d40; /* Darker teal color */
+    /* Opacity and transition are handled by .reveal-text */
+}
+
+/* Style for mnemonic text */
+.mnemonic {
+    margin-top: 30px; /* More space above mnemonic */
+    padding: 20px;
+    background-color: #fff9c4; /* Light yellow background */
+    border-radius: 8px; /* Rounded corners */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05); /* Subtle shadow */
+}
+
+.mnemonic h3 {
+    color: #ffb700; /* Darker yellow for mnemonic heading */
+    margin-bottom: 10px;
+}
+
+.mnemonic p span.reveal-text {
+     display: inline; /* Mnemonic lines should flow as inline elements */
+     line-height: 2; /* Increased line height for readability */
+}

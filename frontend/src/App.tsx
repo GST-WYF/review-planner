@@ -3,7 +3,7 @@ import ReviewTreeViewer from './components/ReviewTreeViewer';
 import ReviewLogPage from './pages/ReviewLogPage';
 import ReviewSchedulePage from './pages/ReviewSchedulePage';
 import WeeklySchedulePage from './pages/WeeklySchedulePage';
-
+import MnemonicPage from './pages/MnemonicPage';
 
 export default function App() {
   return (
@@ -13,6 +13,9 @@ export default function App() {
         <nav className="bg-white shadow p-4 mb-6 flex gap-4 text-sm">
           <Link to="/review-tree" className="text-blue-600 hover:underline">
             📚 知识点树
+          </Link>
+          <Link to="/mnemonic" className="text-red-600 hover:underline">
+            📖 第一站疾病口诀
           </Link>
           <Link to="/review-log" className="text-green-600 hover:underline">
             📋 复习记录
@@ -32,6 +35,7 @@ export default function App() {
           <Route path="/review-log" element={<ReviewLogPage />} />
           <Route path="/review-schedule" element={<ReviewSchedulePage />} />
           <Route path="/weekly-schedule" element={<WeeklySchedulePage />} />
+          <Route path="/mnemonic" element={<MnemonicPage />} />
         </Routes>
       </div>
     </BrowserRouter>
