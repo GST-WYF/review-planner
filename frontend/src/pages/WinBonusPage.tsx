@@ -10,7 +10,7 @@ const WinBonusPage: React.FC = () => {
   };
 
   // Define a fixed height for the container to prevent layout shift while loading
-  const containerHeight = '720px'; // Match iframe height
+  const containerHeight = '472px'; // Match iframe height
 
   return (
     <div className="p-6">
@@ -36,8 +36,8 @@ const WinBonusPage: React.FC = () => {
         {/* We add an onLoad handler to detect when it's done */}
         {/* We also use opacity to hide/show it smoothly */}
         <iframe
-          width="1280"
-          height="720"
+          width="700"
+          height="472"
           frameBorder="0"
           scrolling="no"
           src="https://1drv.ms/x/c/96184a10b02b5c8b/IQRM7HqJFaVDR6l0KPjhAwcaATTNhQ2romgXLAkhUhcuaXc?em=2&wdHideGridlines=True&wdDownloadButton=True&wdInConfigurator=True&wdInConfigurator=True"
