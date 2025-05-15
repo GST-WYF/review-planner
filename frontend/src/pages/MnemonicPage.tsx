@@ -1528,6 +1528,588 @@ export default function MnemonicPage() {
                     </p>
                 </div>
             </div>
+            <div className="disease-entry">
+                <h2>崩漏</h2>
+                <div className="patterns">
+                    <h3>证型与治法方剂:</h3>
+                    <div className="pattern-grid">
+                        <div className="grid-category full-width"><span className="reveal-text">血热证</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">虚热证</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">养阴清热，固冲止血</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">上下相资汤</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">实热证</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">清热凉血，止血调经</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">清热固经汤</span></div>
+                        <div className="grid-category full-width"><span className="reveal-text">肾虚证</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">肾阴虚证</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">滋肾益阴，止血调经</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">左归丸去牛膝，合二至丸</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">肾阳虚证</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">温肾固冲，止血调经</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">右归丸去肉桂，加补骨脂、淫羊藿</span></div>
+                        <div className="grid-category full-width"><span className="reveal-text">脾虚证</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">脾虚证</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">补气升阳，止血调经</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">举元煎合安冲汤加炮姜炭</span></div>
+                        <div className="grid-category full-width"><span className="reveal-text">血瘀证</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">血瘀证</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">活血化瘀，止血调经</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">四草汤加三七、蒲黄</span></div>
+                    </div>
+                </div>
+                <div className="mnemonic">
+                    <h3>歌诀:</h3>
+                    <p>
+                        <span className="reveal-text">崩漏混乱量时期</span><br />
+                        <span className="reveal-text">虚热相资实固经</span><br />
+                        <span className="reveal-text">肾虚阴阳归左右</span><br />
+                        <span className="reveal-text">脾虚举安四草瘀</span>
+                    </p>
+                </div>
+            </div>
+            <div className="disease-entry">
+                <h2>闭经</h2>
+                <div className="patterns">
+                    <h3>证型与治法方剂:</h3>
+                    <div className="pattern-grid">
+                        <div className="grid-category full-width"><span className="reveal-text">闭经</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">肾气亏虚</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">补肾益气，调理冲任</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">大补元煎</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">气血虚弱</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">补气养血调经</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">人参养荣汤或圣愈汤或八珍汤</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">阴虚血燥</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">养阴清热调经</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">加减一阴煎或补肾地黄丸</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">气滞血瘀</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">理气活血，祛瘀通经</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">血府逐瘀汤</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">痰湿阻滞</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">燥湿化痰，活血调经</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">苍附导痰丸</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">寒凝血瘀</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">温经散寒，活血通经</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">温经汤（《妇人大全良方》）</span></div>
+                    </div>
+                </div>
+                <div className="mnemonic">
+                    <h3>歌诀:</h3>
+                    <p>
+                        <span className="reveal-text">闭经肾气大补元</span><br />
+                        <span className="reveal-text">气血养荣瘀血府</span><br />
+                        <span className="reveal-text">加减一阴治血燥</span><br />
+                        <span className="reveal-text">苍附导痰痰湿阻</span><br />
+                        <span className="reveal-text">寒凝血瘀温经汤</span>
+                    </p>
+                </div>
+            </div>
+            <div className="disease-entry">
+                <h2>痛经</h2>
+                <div className="patterns">
+                    <h3>证型与治法方剂:</h3>
+                    <div className="pattern-grid">
+                        <div className="grid-category full-width"><span className="reveal-text">痛经</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">气滞血瘀</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">理气行滞，化瘀止痛</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">膈下逐瘀汤</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">寒凝血瘀</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">温经散寒，化瘀止痛</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">少腹逐瘀汤</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">湿热瘀阻</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">清热除湿，化瘀止痛</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">清热调血汤加红藤、败酱草、薏苡仁</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">气血虚弱</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">益气养血，调经止痛</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">圣愈汤加香附、延胡索</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">肝肾亏损</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">补养肝肾，调经止痛</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">益肾调经汤</span></div>
+                    </div>
+                </div>
+                <div className="mnemonic">
+                    <h3>歌诀:</h3>
+                    <p>
+                        <span className="reveal-text">痛经三瘀与两虚</span><br />
+                        <span className="reveal-text">气滞膈下寒少瘀</span><br />
+                        <span className="reveal-text">湿热瘀阻清调血</span><br />
+                        <span className="reveal-text">气血圣愈肝肾益</span>
+                    </p>
+                </div>
+            </div>
+            <div className="disease-entry">
+                <h2>绝经前后诸证</h2>
+                <div className="patterns">
+                    <h3>证型与治法方剂:</h3>
+                    <div className="pattern-grid">
+                        <div className="grid-category full-width"><span className="reveal-text">绝经前后诸证</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">肾阴虚</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">滋养肾阴，佐以潜阳</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">左归丸</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">肾阳虚</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">温肾扶阳</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">右归丸</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">肾阴阳倶虚</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">阴阳双补</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">二仙汤</span></div>
+                    </div>
+                </div>
+                <div className="mnemonic">
+                    <h3>歌诀:</h3>
+                    <p>
+                        <span className="reveal-text">阴左阳右阴阳二仙</span>
+                    </p>
+                </div>
+            </div>
+            <div className="disease-entry">
+                <h2>带下病</h2>
+                <div className="patterns">
+                    <h3>证型与治法方剂:</h3>
+                    <div className="pattern-grid">
+                        <div className="grid-category full-width"><span className="reveal-text">带下过多</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">脾虚</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">健脾益气，升阳除湿</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">完带汤</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">肾虚</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">温肾培元，固涩止带</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">内补丸</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">阴虚夹湿热</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">益肾滋阴，清热利湿</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">知柏地黄汤加芡实、金樱子</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">湿热下注</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">清利湿热，佐以解毒杀虫</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">止带方</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">热毒蕴结</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">清热解毒</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">五味消毒饮</span></div>
+                        <div className="grid-category full-width"><span className="reveal-text">带下过少</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">肝肾亏损</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">滋补肝肾，养精益血</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">左归丸</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">血瘀津亏</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">补血益精，活血化瘀</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">小营煎加丹参、桃仁、牛膝</span></div>
+                    </div>
+                </div>
+                <div className="mnemonic">
+                    <h3>歌诀:</h3>
+                    <p>
+                        <span className="reveal-text">带多：带多热毒五味消</span><br />
+                        <span className="reveal-text">肾虚内补完带脾</span><br />
+                        <span className="reveal-text">湿热止带阴虚知</span><br />
+                        <span className="reveal-text">带少：血亏小营肝肾左</span>
+                    </p>
+                </div>
+            </div>
+            <div className="disease-entry">
+                <h2>胎漏、胎动不安</h2>
+                <div className="patterns">
+                    <h3>证型与治法方剂:</h3>
+                    <div className="pattern-grid">
+                        <div className="grid-category full-width"><span className="reveal-text">胎漏、胎动不安</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">肾虚</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">固肾安胎，佐以益气</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">寿胎丸</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">气血虚弱</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">补气养血，固肾安胎</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">胎元饮去当归，加黄芪、阿胶</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">血热</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">清热凉血，养血安胎</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">保阴煎加苎麻根</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">跌仆伤胎</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">补气和血，安胎</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">圣愈汤合寿胎丸</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">癥瘕伤胎</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">祛瘀消癥，固冲安胎</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">桂枝茯苓丸合寿胎丸</span></div>
+                    </div>
+                </div>
+                <div className="mnemonic">
+                    <h3>歌诀:</h3>
+                    <p>
+                        <span className="reveal-text">不痛胎漏癥桂苓</span><br />
+                        <span className="reveal-text">肾寿胎血热保阴</span><br />
+                        <span className="reveal-text">气血胎元跌圣寿</span>
+                    </p>
+                </div>
+            </div>
+            <div className="disease-entry">
+                <h2>产后发热</h2>
+                <div className="patterns">
+                    <h3>证型与治法方剂:</h3>
+                    <div className="pattern-grid">
+                        <div className="grid-category full-width"><span className="reveal-text">产后发热</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">感染邪毒</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">清热解毒，凉血化瘀</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">五味消毒饮合失笑散或解毒活血汤</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">外感</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">养血祛风，疏解表邪</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">荆防四物汤</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">血瘀</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">活血化瘀，和营除热</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">生化汤</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">血虚</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">养血益气，和营退热</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">八珍汤</span></div>
+                    </div>
+                </div>
+                <div className="mnemonic">
+                    <h3>歌诀:</h3>
+                    <p>
+                        <span className="reveal-text">产后染毒五味笑</span><br />
+                        <span className="reveal-text">外感荆防四物汤</span><br />
+                        <span className="reveal-text">血瘀生化八珍补</span>
+                    </p>
+                </div>
+            </div>
+            <div className="disease-entry">
+                <h2>不孕症</h2>
+                <div className="patterns">
+                    <h3>证型与治法方剂:</h3>
+                    <div className="pattern-grid">
+                        <div className="grid-category full-width"><span className="reveal-text">肾虚</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">肾气虚</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">补肾益气，调补冲任</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">毓麟珠</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">肾阳虚</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">温肾助阳，调补冲任</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">温胞饮或右归丸</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">肾阴虚</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">滋肾养血，调补冲任</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">养精种玉汤加女贞子、旱莲草</span></div>
+                        <div className="grid-category full-width"><span className="reveal-text">不孕症</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">肝气郁结</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">疏肝解郁，理血调经</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">开郁种玉汤</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">瘀滞胞宫</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">活血化瘀，调经助孕</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">少腹逐瘀汤</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">痰湿内阻</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">燥湿化痰，理气调经</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">苍附导痰丸</span></div>
+                    </div>
+                </div>
+                <div className="mnemonic">
+                    <h3>歌诀:</h3>
+                    <p>
+                        <span className="reveal-text">不孕气虚毓麟珠</span><br />
+                        <span className="reveal-text">肾阴养精阳温胞</span><br />
+                        <span className="reveal-text">开郁种玉调郁结</span><br />
+                        <span className="reveal-text">苍附导痰少瘀滞</span>
+                    </p>
+                </div>
+            </div>
+            <div className="disease-entry">
+                <h2>癥瘕</h2>
+                <div className="patterns">
+                    <h3>证型与治法方剂:</h3>
+                    <div className="pattern-grid">
+                        <div className="grid-category full-width"><span className="reveal-text">癥瘕</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">气滞血瘀</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">行气活血，化瘀消癥</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">香棱丸或大黄蛰虫丸</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">寒凝血瘀</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">温经散寒，祛瘀消瘤</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">少腹逐瘀汤</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">痰湿瘀结</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">化痰除湿，活血消癥</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">苍附导痰丸合桂枝茯苓丸</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">湿热瘀阻</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">清热利湿，化瘀消癥</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">大黄牡丹汤</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">气虚血瘀</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">补气活血，化瘀消瘤</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">理冲汤</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">肾虚血瘀</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">补肾活血，消癥散结</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">肾气丸合桂枝茯苓丸</span></div>
+                    </div>
+                </div>
+                <div className="mnemonic">
+                    <h3>歌诀:</h3>
+                    <p>
+                        <span className="reveal-text">癥瘕气滞香棱丸</span><br />
+                        <span className="reveal-text">苍附导痰热牡丹</span><br />
+                        <span className="reveal-text">寒凝少腹气虚冲</span><br />
+                        <span className="reveal-text">肾虚肾气合桂苓</span>
+                    </p>
+                </div>
+            </div>
+            <div className="disease-entry">
+                <h2>肺炎喘嗽</h2>
+                <div className="patterns">
+                    <h3>证型与治法方剂:</h3>
+                    <div className="pattern-grid">
+                        <div className="grid-category full-width"><span className="reveal-text">常证</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">风寒闭肺</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">辛温宣肺，化痰止咳</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">华盖散加味</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">风热闭肺</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">辛凉宣肺，化痰止咳</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">麻杏石甘汤</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">痰热闭肺</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">清热涤痰，开肺定喘</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">麻杏石甘汤合葶苈大枣泻肺汤</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">毒热闭肺</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">清热解毒，泻肺开闭</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">黄连解毒汤合麻杏石甘汤</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">阴虚肺热</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">养阴清肺，润肺止咳</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">沙参麦冬汤</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">肺脾气虚</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">补肺益气，健脾化痰</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">人参五味子汤</span></div>
+                        <div className="grid-category full-width"><span className="reveal-text">变证</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">心阳虚衰</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">温补心阳，救逆固脱</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">参附龙牡救逆汤</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">邪陷厥阴</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">平肝息风，清心开窍</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">羚角钩藤汤合牛黄清心丸</span></div>
+                    </div>
+                </div>
+                <div className="mnemonic">
+                    <h3>歌诀:</h3>
+                    <p>
+                        <span className="reveal-text">嗽喘鼻扇儿喘嗽</span><br />
+                        <span className="reveal-text">寒热毒痰阴气虚</span><br />
+                        <span className="reveal-text">阳衰阴陷症候全</span><br />
+                        <span className="reveal-text">寒以华盖热麻杏</span><br />
+                        <span className="reveal-text">麻杏葶苈痰热清</span><br />
+                        <span className="reveal-text">黄连麻杏解毒热</span><br />
+                        <span className="reveal-text">气虚五味阴沙麦</span><br />
+                        <span className="reveal-text">救阳龙牡阴牛羚</span>
+                    </p>
+                </div>
+            </div>
+            <div className="disease-entry">
+                <h2>小儿泄泻</h2>
+                <div className="patterns">
+                    <h3>证型与治法方剂:</h3>
+                    <div className="pattern-grid">
+                        <div className="grid-category full-width"><span className="reveal-text">常证</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">风寒泻</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">疏风散寒，化湿和中</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">藿香正气散</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">湿热泻</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">清肠解热，化湿止泻</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">葛根黄芩黄连汤加味</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">伤食泻</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">运脾和胃，消食化滞</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">保和丸</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">脾虚泻</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">健脾益气，助运止泻</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">参苓白术散</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">脾肾阳虚泻</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">温补脾肾，固涩止泻</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">附子理中汤合四神丸</span></div>
+                        <div className="grid-category full-width"><span className="reveal-text">变证</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">气阴两伤</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">益气养阴</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">人参乌梅汤</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">阴竭阳脱</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">回阳固脱</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">生脉散合参附龙牡救逆汤</span></div>
+                    </div>
+                </div>
+                <div className="mnemonic">
+                    <h3>歌诀:</h3>
+                    <p>
+                        <span className="reveal-text">常证：泄泻寒湿热食滞</span><br />
+                        <span className="reveal-text">藿香葛根芩连保</span><br />
+                        <span className="reveal-text">脾虚参苓肾四附</span><br />
+                        <span className="reveal-text">变证：气阴参梅阳脱救</span>
+                    </p>
+                </div>
+            </div>
+            <div className="disease-entry">
+                <h2>积滞</h2>
+                <div className="patterns">
+                    <h3>证型与治法方剂:</h3>
+                    <div className="pattern-grid">
+                        <div className="grid-category full-width"><span className="reveal-text">积滞</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">乳食内积</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">消食化积，导滞和中</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">乳食积滞，消乳丸；食积者，保和丸</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">脾虚夹积</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">健脾助运，消食化积</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">健脾丸</span></div>
+                    </div>
+                </div>
+                <div className="mnemonic">
+                    <h3>歌诀:</h3>
+                    <p>
+                        <span className="reveal-text">积滞消乳保和食</span><br />
+                        <span className="reveal-text">脾虚夹积健脾除</span>
+                    </p>
+                </div>
+            </div>
+            <div className="disease-entry">
+                <h2>鹅口疮</h2>
+                <div className="patterns">
+                    <h3>证型与治法方剂:</h3>
+                    <div className="pattern-grid">
+                        <div className="grid-category full-width"><span className="reveal-text">鹅口疮</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">心脾积热</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">清心泻脾</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">清热泻脾散</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">虚火上浮</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">滋阴降火</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">知柏地黄丸</span></div>
+                    </div>
+                </div>
+                <div className="mnemonic">
+                    <h3>歌诀:</h3>
+                    <p>
+                        <span className="reveal-text">雪口心脾清泻脾</span><br />
+                        <span className="reveal-text">知柏地黄虚火浮</span>
+                    </p>
+                </div>
+            </div>
+            <div className="disease-entry">
+                <h2>水痘</h2>
+                <div className="patterns">
+                    <h3>证型与治法方剂:</h3>
+                    <div className="pattern-grid">
+                        <div className="grid-category full-width"><span className="reveal-text">常证</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">邪伤肺卫</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">疏风清热，利湿解毒</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">银翘散</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">邪炽气营</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">清气凉营，解毒化湿</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">清胃解毒汤</span></div>
+                        <div className="grid-category full-width"><span className="reveal-text">变证</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">邪陷心肝</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">清热解毒，镇惊息风</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">清瘟败毒饮</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">邪毒闭肺</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">清热解毒，开肺化痰</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">麻杏石甘汤</span></div>
+                    </div>
+                </div>
+                <div className="mnemonic">
+                    <h3>歌诀:</h3>
+                    <p>
+                        <span className="reveal-text">无</span>
+                    </p>
+                </div>
+            </div>
+            <div className="disease-entry">
+                <h2>痄腮</h2>
+                <div className="patterns">
+                    <h3>证型与治法方剂:</h3>
+                    <div className="pattern-grid">
+                        <div className="grid-category full-width"><span className="reveal-text">常证</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">邪犯少阳</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">疏风清热，散结消肿</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">柴胡葛根汤</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">热毒蕴结</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">清热解毒，软坚散结</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">普济消毒饮</span></div>
+                        <div className="grid-category full-width"><span className="reveal-text">变证</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">邪陷心肝</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">清热解毒，息风开窍</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">清瘟败毒饮</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">毒窜睾腹</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">清肝泻火，活血止痛</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">龙胆泻肝汤</span></div>
+                    </div>
+                </div>
+                <div className="mnemonic">
+                    <h3>歌诀:</h3>
+                    <p>
+                        <span className="reveal-text">痄腮少阳柴葛汤</span><br />
+                        <span className="reveal-text">热毒普济消毒饮</span><br />
+                        <span className="reveal-text">心肝清瘟龙胆睾</span>
+                    </p>
+                </div>
+            </div>
+            <div className="disease-entry">
+                <h2>手足口病</h2>
+                <div className="patterns">
+                    <h3>证型与治法方剂:</h3>
+                    <div className="pattern-grid">
+                        <div className="grid-category full-width"><span className="reveal-text">手足口病</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">邪犯肺脾</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">宣肺解表，清热化湿</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">甘露消毒丹</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">湿热蒸盛</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">清热凉营，解毒祛湿</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">清瘟败毒饮</span></div>
+                    </div>
+                </div>
+                <div className="mnemonic">
+                    <h3>歌诀:</h3>
+                    <p>
+                        <span className="reveal-text">肺脾甘露消</span><br />
+                        <span className="reveal-text">湿热清瘟饮</span>
+                    </p>
+                </div>
+            </div>
+            <div className="disease-entry">
+                <h2>麻疹</h2>
+                <div className="patterns">
+                    <h3>证型与治法方剂:</h3>
+                    <div className="pattern-grid">
+                        <div className="grid-category full-width"><span className="reveal-text">顺证</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">邪犯肺卫（初热期）</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">辛凉透表，清宣肺卫</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">宣毒发表汤</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">邪入肺胃（出疹期）</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">清凉解毒，透疹达邪</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">清解透表汤</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">阴津耗伤（收没期）</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">养阴益气，清解余邪</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">沙参麦冬汤</span></div>
+                        <div className="grid-category full-width"><span className="reveal-text">逆证</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">邪毒闭肺</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">宣肺开闭，清热解毒</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">麻杏石甘汤</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">邪毒攻喉</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">清热解毒，利咽消肿</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">清咽下痰汤</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">邪陷心肝</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">平肝息风，清营解毒</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">羚角钩藤汤</span></div>
+                    </div>
+                </div>
+                <div className="mnemonic">
+                    <h3>歌诀:</h3>
+                    <p>
+                        <span className="reveal-text">顺：肺卫肺胃阴津伤</span><br />
+                        <span className="reveal-text">宣毒清透麦冬汤</span><br />
+                        <span className="reveal-text">逆：肺麻咽喉心肝钩</span>
+                    </p>
+                </div>
+            </div>
+            <div className="disease-entry">
+                <h2>紫癜</h2>
+                <div className="patterns">
+                    <h3>证型与治法方剂:</h3>
+                    <div className="pattern-grid">
+                        <div className="grid-category full-width"><span className="reveal-text">紫癜</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">风热伤络</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">疏风清热，凉血安络</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">银翘散</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">血热妄行</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">清热解毒，凉血止血</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">犀角地黄汤</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">气不摄血</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">健脾养心，益气摄血</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">归脾汤</span></div>
+                        <div className="grid-item pattern-name"><span className="reveal-text">阴虚火旺</span></div>
+                        <div className="grid-item treatment-name"><span className="reveal-text">滋阴降火，凉血止血</span></div>
+                        <div className="grid-item formula-name"><span className="reveal-text">知柏地黄丸</span></div>
+                    </div>
+                </div>
+                <div className="mnemonic">
+                    <h3>歌诀:</h3>
+                    <p>
+                        <span className="reveal-text">热银翘血热犀</span><br />
+                        <span className="reveal-text">气血归脾阴虚知</span>
+                    </p>
+                </div>
+            </div>
         </div>
     );
 }
