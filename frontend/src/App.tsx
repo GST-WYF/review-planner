@@ -4,6 +4,8 @@ import ReviewLogPage from './pages/ReviewLogPage';
 import ReviewSchedulePage from './pages/ReviewSchedulePage';
 import WeeklySchedulePage from './pages/WeeklySchedulePage';
 import MnemonicPage from './pages/MnemonicPage';
+// Import the new page component
+import WinBonusPage from './pages/WinBonusPage';
 
 export default function App() {
   return (
@@ -19,6 +21,9 @@ export default function App() {
           </Link>
           <Link to="/review-log" className="text-green-600 hover:underline">
             📋 复习记录
+          </Link>
+          <Link to="/win-bonus" className="text-yellow-600 hover:underline"> {/* You can choose a different color class */}
+            🏆 赢得奖金
           </Link>
           <Link to="/review-schedule" className="text-purple-600 hover:underline">
             🕒 时间表
@@ -36,6 +41,7 @@ export default function App() {
           <Route path="/review-schedule" element={<ReviewSchedulePage />} />
           <Route path="/weekly-schedule" element={<WeeklySchedulePage />} />
           <Route path="/mnemonic" element={<MnemonicPage />} />
+          <Route path="/win-bonus" element={<WinBonusPage />} />
         </Routes>
       </div>
     </BrowserRouter>
